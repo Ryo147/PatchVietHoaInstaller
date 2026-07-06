@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using VietHoaInstaller.Models;
 using VietHoaInstaller.Services;
@@ -19,7 +20,31 @@ namespace VietHoaInstaller
         public MainWindow()
         {
             InitializeComponent();
+            LoadGameCatalog();
             LoadLastGameFolder();
+        }
+
+        private void LoadGameCatalog()
+        {
+            CmbGame.ItemsSource = Models.GameCatalog.All;
+            if (Models.GameCatalog.All.Count > 0)
+                CmbGame.SelectedIndex = 0;
+        }
+
+        private void CmbGame_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (CmbGame.SelectedItem is Models.GameProfile profile)
+            {
+                _installer.PatchDownloadUrl = profile.PatchDownloadUrl;
+                _installer.RequiredGameFiles = profile.RequiredGameFiles;
+                _installer.InstallMode = profile.InstallMode;
+                _installer.ModFolderRelativePath = profile.ModFolderRelativePath;
+
+                UpdateBanner(profile.BannerImagePath);
+
+                if (Directory.Exists(TxtGamePath.Text))
+                    RefreshStatusForFolder(TxtGamePath.Text, showErrorDialog: false);
+            }
         }
 
         // ================= TITLE BAR =================
@@ -144,6 +169,7 @@ namespace VietHoaInstaller
             {
                 ProgressInstall.Value = p.Percent;
                 TxtPercent.Text = $"{p.Percent}%";
+                TxtProgressDetail.Text = p.Message;
             });
 
             try
@@ -201,6 +227,7 @@ namespace VietHoaInstaller
             {
                 ProgressInstall.Value = p.Percent;
                 TxtPercent.Text = $"{p.Percent}%";
+                TxtProgressDetail.Text = p.Message;
             });
 
             try
@@ -241,6 +268,34 @@ namespace VietHoaInstaller
                 // Khi bắt đầu chạy, luôn tắt cả 2 nút hành động để tránh bấm chồng
                 BtnInstall.IsEnabled = false;
                 BtnUninstall.IsEnabled = false;
+            }
+        }
+
+        /// <summary>Đổi ảnh banner theo game đang chọn. Nếu thiếu đường dẫn hoặc ảnh lỗi thì giữ nguyên ảnh cũ, không crash app.</summary>
+        private void UpdateBanner(string bannerImagePath)
+        {
+            if (string.IsNullOrWhiteSpace(bannerImagePath))
+                return;
+
+            try
+            {
+                // QUAN TRỌNG: phải dùng pack URI đầy đủ ("pack://application:,,,/...") khi tạo Uri bằng code.
+                // Viết "/Assets/xxx.png" rồi UriKind.Relative sẽ bị hiểu nhầm thành đường dẫn ổ đĩa (C:\Assets\xxx.png)
+                // chứ không phải ảnh nhúng sẵn trong file .exe.
+                string relativePart = bannerImagePath.TrimStart('/');
+                var packUri = new Uri($"pack://application:,,,/{relativePart}", UriKind.Absolute);
+
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.UriSource = packUri;
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.EndInit();
+
+                BannerImageBrush.ImageSource = bitmap;
+            }
+            catch
+            {
+                // Ảnh banner bị thiếu/lỗi -> bỏ qua, giữ nguyên banner hiện tại thay vì crash app
             }
         }
 
