@@ -3,4 +3,4 @@ Phần mềm cài đặt Patch Việt Hóa. Chỉ áp dụng cho các game mà n
 
 Các chi phí phải bỏ ra để lấy phần mềm này đều là lừa đảo. Phần mềm này được viết ra để phục vụ cho cộng đồng game thủ mong muốn chơi các bản Việt hóa chất lượng và không cồng kềnh khi cài đặt.
 
-<small>Develop by Claude / Editing by Nhựa Inox</small>
+Develop by Claude / Editing by Nhựa Inox
