@@ -22,11 +22,13 @@
 
 	<ItemGroup>
 		<None Remove="Assets\PlagueIncVH.jpg" />
+		<None Remove="Assets\RE2_DX11.png" />
 		<None Remove="Assets\Dich2000sICON.ico" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Resource Include="Assets\PlagueIncVH.jpg" />
+		<Resource Include="Assets\RE2_DX11.png" />
 		<Resource Include="Assets\Dich2000sICON.ico" />
 	</ItemGroup>
 
