@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net10.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<UseWPF>true</UseWPF>
+		<AssemblyName>VietHoaInstaller</AssemblyName>
+		<RootNamespace>VietHoaInstaller</RootNamespace>
+
+		<!-- Đóng gói tối ưu: 1 file .exe duy nhất, không cần cài .NET Runtime -->
+		<SelfContained>true</SelfContained>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<PublishSingleFile>true</PublishSingleFile>
+		<PublishReadyToRun>true</PublishReadyToRun>
+		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+		<DebugType>none</DebugType>
+		<SatelliteResourceLanguages>vi</SatelliteResourceLanguages>
+		<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+		<ApplicationIcon>Assets\Dich2000sICON.ico</ApplicationIcon>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Remove="Assets\PlagueIncVH.jpg" />
+		<None Remove="Assets\Dich2000sICON.ico" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Resource Include="Assets\PlagueIncVH.jpg" />
+		<Resource Include="Assets\Dich2000sICON.ico" />
+	</ItemGroup>
+
+</Project>
