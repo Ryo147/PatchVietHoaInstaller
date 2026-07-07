@@ -3,9 +3,7 @@ Phần mềm cài đặt Patch Việt Hóa. Chỉ áp dụng cho các game mà n
 
 Các chi phí phải bỏ ra để lấy phần mềm này đều là lừa đảo. Phần mềm này được viết ra để phục vụ cho cộng đồng game thủ mong muốn chơi các bản Việt hóa chất lượng và không cồng kềnh khi cài đặt.
 
-Develop by Claude / Editing by Nhựa Inox
-
----
+Develop by Claude / Editing by Nhựa Inox (Ryo147)
 
 ## Tính năng chính
 - Tự tìm thư mục cài đặt game.
@@ -13,8 +11,6 @@ Develop by Claude / Editing by Nhựa Inox
 - Sao lưu (Backup) file gốc khi muốn gỡ bản Việt hóa
 - Tối ưu dung lượng cài đặt patch bằng cách sử dụng các phần mềm có sẵn bên ngoài để áp dụng dễ hơn như Fluffy Mod Manager,...
 - Giao diện cài đặt dễ sử dụng
-
----
 
 ## Độ an toàn
 
