@@ -33,6 +33,13 @@ namespace VietHoaInstaller.Models
 
         /// <summary>Lọc đúng file trong release nếu 1 release có nhiều asset (vd release chung cho nhiều game). Để rỗng nếu release chỉ có 1 file.</summary>
         public string AssetNameContains { get; set; } = "";
+
+        /// <summary>
+        /// Danh sách buildid Steam đã test/xác nhận bản Việt hóa hoạt động đúng (xem SteamLocatorService.GetInstalledBuildId).
+        /// Để rỗng = chưa cấu hình, tool sẽ BỎ QUA kiểm tra này (không cảnh báo gì).
+        /// Cần nhóm dịch tự cập nhật danh sách này sau khi test — buildid đổi mỗi khi game được Steam cập nhật.
+        /// </summary>
+        public List<string> SupportedBuildIds { get; set; } = new();
     }
     public static class GameCatalog
     {

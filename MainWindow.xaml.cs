@@ -28,6 +28,7 @@ namespace VietHoaInstaller
         {
             InitializeComponent();
             RunAppVersion.Text = $"v{AppVersion}";
+            AppendLog($"Khởi động ứng dụng v{AppVersion}");
             LoadGameCatalog();
             LoadLastGameFolder();
             _ = CheckForAppUpdateAsync();
@@ -55,6 +56,7 @@ namespace VietHoaInstaller
                 _installer.AssetNameContains = profile.AssetNameContains;
 
                 UpdateBanner(profile.BannerImagePath);
+                AppendLog($"Đã chọn game: {profile.Name}");
 
                 if (Directory.Exists(TxtGamePath.Text))
                     RefreshStatusForFolder(TxtGamePath.Text, showErrorDialog: false);
@@ -116,12 +118,15 @@ namespace VietHoaInstaller
         /// <summary>Cập nhật trạng thái + bật/tắt nút dựa trên thư mục game hiện tại.</summary>
         private void RefreshStatusForFolder(string gameFolder, bool showErrorDialog = false)
         {
+            AppendLog($"Kiểm tra thư mục: {gameFolder}");
+
             // 1) Đã cài Việt hóa trước đó chưa?
             if (_installer.IsInstalled(gameFolder))
             {
                 SetStatus("Đã cài đặt Việt hóa", "#3DDC97");
                 BtnInstall.IsEnabled = false;
                 BtnUninstall.IsEnabled = true;
+                AppendLog("-> Đã cài đặt Việt hóa từ trước.");
                 return;
             }
 
@@ -132,6 +137,7 @@ namespace VietHoaInstaller
                 SetStatus("Sai thư mục game", "#FF5A4A");
                 BtnInstall.IsEnabled = false;
                 BtnUninstall.IsEnabled = false;
+                AppendLog("-> Sai thư mục game, không tìm thấy file gốc cần thiết.");
 
                 if (showErrorDialog)
                 {
@@ -145,6 +151,7 @@ namespace VietHoaInstaller
             SetStatus("Chưa cài đặt Việt hóa", "#FFB454");
             BtnInstall.IsEnabled = true;
             BtnUninstall.IsEnabled = false;
+            AppendLog("-> Thư mục hợp lệ, sẵn sàng cài đặt.");
         }
         // ================= CÀI ĐẶT PATCH (THẬT) =================
         private async void BtnInstall_Click(object sender, RoutedEventArgs e)
@@ -174,16 +181,44 @@ namespace VietHoaInstaller
                 RefreshStatusForFolder(gameFolder);
                 return;
             }
+
+            if (CmbGame.SelectedItem is Models.GameProfile profile && profile.SupportedBuildIds.Count > 0)
+            {
+                string? currentBuildId = SteamLocatorService.GetInstalledBuildId(gameFolder, profile.SteamAppId);
+
+                // currentBuildId == null nghĩa là không đọc được (vd: game không cài qua Steam library chuẩn)
+                // -> không đủ dữ liệu để so sánh, bỏ qua cảnh báo thay vì báo sai.
+                if (currentBuildId != null && !profile.SupportedBuildIds.Contains(currentBuildId))
+                {
+                    var buildWarning = MessageBox.Show(
+                        $"Phiên bản game hiện tại (build {currentBuildId}) khác với bản mà nhóm dịch đã test bản Việt hóa này.\n" +
+                        "Patch có thể không hoạt động đúng hoặc gây lỗi game.\n\nBạn có muốn tiếp tục cài đặt không?",
+                        "Cảnh báo phiên bản game", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                    if (buildWarning != MessageBoxResult.Yes)
+                        return;
+                }
+            }
+
+            AppendLog($"Bắt đầu cài đặt Việt hóa cho: {(CmbGame.SelectedItem as Models.GameProfile)?.Name ?? gameFolder}");
+
             SetBusyState(true);
             PanelProgress.Visibility = Visibility.Visible;
             SetStatus("Đang cài đặt Việt hóa...", "#FFB454");
 
             _cts = new CancellationTokenSource();
+            string? lastLoggedMessage = null;
             var progress = new Progress<InstallProgress>(p =>
             {
                 ProgressInstall.Value = p.Percent;
                 TxtPercent.Text = $"{p.Percent}%";
                 TxtProgressDetail.Text = p.Message;
+
+                if (p.Message != lastLoggedMessage)
+                {
+                    lastLoggedMessage = p.Message;
+                    AppendLog(p.Message);
+                }
             });
 
             try
@@ -193,6 +228,7 @@ namespace VietHoaInstaller
                 SetStatus("Đã cài đặt Việt hóa", "#3DDC97");
                 BtnUninstall.IsEnabled = true;
                 BtnInstall.IsEnabled = false;
+                AppendLog("Cài đặt Việt hóa thành công.");
 
                 // Hiện "Hoàn tất" trong chốc lát rồi tự ẩn thanh tiến trình
                 await Task.Delay(800);
@@ -203,10 +239,12 @@ namespace VietHoaInstaller
             catch (OperationCanceledException)
             {
                 SetStatus("Đã hủy cài đặt", "#FFB454");
+                AppendLog("Đã hủy cài đặt.");
             }
             catch (Exception ex)
             {
                 SetStatus("Cài đặt thất bại", "#FF5A4A");
+                AppendLog($"LỖI: {ex.Message}");
                 OfferErrorReport("Cài đặt thất bại", ex);
             }
             finally
@@ -230,16 +268,25 @@ namespace VietHoaInstaller
             if (confirm != MessageBoxResult.Yes)
                 return;
 
+            AppendLog($"Bắt đầu gỡ Việt hóa: {gameFolder}");
+
             SetBusyState(true);
             PanelProgress.Visibility = Visibility.Visible;
             SetStatus("Đang gỡ Việt hóa...", "#FFB454");
 
             _cts = new CancellationTokenSource();
+            string? lastLoggedMessage = null;
             var progress = new Progress<InstallProgress>(p =>
             {
                 ProgressInstall.Value = p.Percent;
                 TxtPercent.Text = $"{p.Percent}%";
                 TxtProgressDetail.Text = p.Message;
+
+                if (p.Message != lastLoggedMessage)
+                {
+                    lastLoggedMessage = p.Message;
+                    AppendLog(p.Message);
+                }
             });
 
             try
@@ -252,10 +299,12 @@ namespace VietHoaInstaller
                 ProgressInstall.Value = 0;
                 TxtPercent.Text = "0%";
                 PanelProgress.Visibility = Visibility.Collapsed;
+                AppendLog("Gỡ Việt hóa thành công.");
             }
             catch (Exception ex)
             {
                 SetStatus("Gỡ Việt hóa thất bại", "#FF5A4A");
+                AppendLog($"LỖI: {ex.Message}");
                 OfferErrorReport("Gỡ Việt hóa thất bại", ex);
             }
             finally
@@ -285,6 +334,7 @@ namespace VietHoaInstaller
             string? foundFolder = SteamLocatorService.FindGameInstallFolder(profile.SteamAppId);
             if (foundFolder == null)
             {
+                AppendLog($"Tự động dò tìm thất bại cho: {profile.Name}");
                 MessageBox.Show(
                     "Không tìm thấy game qua Steam. Có thể bạn chưa cài Steam, chưa cài game này, " +
                     "hoặc cài ở ổ đĩa Steam đã gỡ liên kết (offline library).\nVui lòng bấm \"Chọn...\" để chọn thư mục thủ công.",
@@ -292,6 +342,7 @@ namespace VietHoaInstaller
                 return;
             }
 
+            AppendLog($"Tự động tìm thấy thư mục: {foundFolder}");
             TxtGamePath.Text = foundFolder;
 
             var settings = SettingsManager.Load();
@@ -321,6 +372,7 @@ namespace VietHoaInstaller
             _pendingAppUpdateAsset = asset;
             _pendingAppUpdateHash = GitHubReleaseService.ExtractSha256Hex(asset.Digest);
 
+            AppendLog($"Phát hiện bản cập nhật mới: {release.TagName}");
             RunUpdateMessage.Text = $"🔔 Đã có bản cập nhật mới ({release.TagName})!";
             LinkUpdateDownload.NavigateUri = new Uri(release.HtmlUrl);
             PanelUpdateBanner.Visibility = Visibility.Visible;
@@ -417,6 +469,13 @@ namespace VietHoaInstaller
         }
 
         // ================= HELPER =================
+
+        /// <summary>Ghi 1 dòng vào khung "Nhật ký hoạt động", kèm giờ:phút:giây, tự cuộn xuống dòng mới nhất.</summary>
+        private void AppendLog(string message)
+        {
+            TxtLog.Text += $"[{DateTime.Now:HH:mm:ss}] {message}\n";
+            LogScrollViewer.ScrollToBottom();
+        }
 
         /// <summary>Khóa các nút thao tác trong lúc đang cài/gỡ để tránh bấm chồng lệnh.</summary>
         private void SetBusyState(bool isBusy)
