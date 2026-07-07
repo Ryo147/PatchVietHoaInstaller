@@ -67,10 +67,14 @@ namespace VietHoaInstaller.Services
         /// (file đã bị ghi đè) thì vẫn coi là hợp lệ, vì lúc đó file gốc đã được
         /// backup và thay bằng file Việt hóa — không còn file gốc để so khớp.
         /// </summary>
+        public bool SkipGameFolderValidation { get; set; } = false;
         public GameFolderCheckResult ValidateGameFolder(string gameFolder)
         {
             if (string.IsNullOrWhiteSpace(gameFolder) || !Directory.Exists(gameFolder))
                 return new GameFolderCheckResult(false, "Thư mục không tồn tại.");
+
+            if (SkipGameFolderValidation)
+                return new GameFolderCheckResult(true, "");   // <-- thêm dòng này
 
             if (IsInstalled(gameFolder))
                 return new GameFolderCheckResult(true, "");

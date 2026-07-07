@@ -40,6 +40,11 @@ namespace VietHoaInstaller.Models
         /// Cần nhóm dịch tự cập nhật danh sách này sau khi test — buildid đổi mỗi khi game được Steam cập nhật.
         /// </summary>
         public List<string> SupportedBuildIds { get; set; } = new();
+        /// <summary>
+        /// True nếu đích cài không phải thư mục game thật (vd: bundle FluffyModManager),
+        /// khi đó bỏ qua kiểm tra RequiredGameFiles — cho phép người dùng chọn thư mục bất kỳ.
+        /// </summary>
+        public bool SkipGameFolderValidation { get; set; } = false;
     }
     public static class GameCatalog
     {
@@ -62,13 +67,14 @@ namespace VietHoaInstaller.Models
             },
             new GameProfile
             {
-                Name = "[CHƯA HOÀN THIỆN] Resident Evil 2 Remake (DX11_NON-RT)",
+                Name = "[CHƯA HOÀN THIỆN] Resident Evil 2 Remake (DX11_NON-RT) w/ Fluffy Mod Manager",
                 PatchDownloadUrl = "https://github.com/Ryo147/PatchVH/releases/download/PatchLocalization/RE2R_DX11_PATCHVH_ALPHA.zip", // TODO: đổi link thật
                 RequiredGameFiles = new() { @"re2.exe" }, // file dùng để nhận diện đúng thư mục game
                 InstallMode = GameInstallMode.CopyToModFolder,
                 ModFolderRelativePath = "", // zip đã có sẵn "natives\..." ở gốc -> copy thẳng vào gốc thư mục game, không cộng thêm thư mục con
                 BannerImagePath = "/Assets/RE2_DX11.png", // TODO: đảm bảo file này nằm trong thư mục Assets
                 SteamAppId = "883710",
+                SkipGameFolderValidation = true,
                 GitHubOwner = "Ryo147",
                 GitHubRepo = "PatchVH",
                 AssetNameContains = "RE2R"
