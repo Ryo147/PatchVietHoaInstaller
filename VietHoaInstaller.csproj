@@ -8,6 +8,9 @@
 		<AssemblyName>VietHoaInstaller</AssemblyName>
 		<RootNamespace>VietHoaInstaller</RootNamespace>
 
+		<!-- Nguồn duy nhất khai báo version của app. Mỗi lần release, chỉ cần sửa số này ở đây -->
+		<Version>2.0</Version>
+
 		<!-- Đóng gói tối ưu: 1 file .exe duy nhất, không cần cài .NET Runtime -->
 		<SelfContained>true</SelfContained>
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
