@@ -4,6 +4,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,9 +28,24 @@ namespace VietHoaInstaller.Services
         private const string BackupFolderName = "VietHoaBackup";
         private const string ManifestFileName = "manifest.json";
 
+        // Dùng chung 1 HttpClient cho cả app thay vì tạo mới mỗi lần tải — tránh cạn kiệt socket khi tải nhiều lần.
+        private static readonly HttpClient _http = new();
+
         public string PatchDownloadUrl { get; set; } = "https://github.com/Ryo147/PatchVH-Plague-Inc./releases/download/PatchLocalization/PatchVH_P.I_v.BETA.zip";
         public GameInstallMode InstallMode { get; set; } = GameInstallMode.OverwriteFiles;
         public string ModFolderRelativePath { get; set; } = "";
+
+        /// <summary>Hash kỳ vọng của file zip patch, dùng để xác thực tính toàn vẹn sau khi tải xong. Để rỗng nếu chưa có, sẽ bỏ qua bước xác thực.</summary>
+        public string ExpectedHash { get; set; } = "";
+
+        /// <summary>Thuật toán hash tương ứng với ExpectedHash: "MD5" hoặc "SHA256" (mặc định).</summary>
+        public string HashAlgorithmName { get; set; } = "SHA256";
+
+        /// <summary>Nếu có, tool sẽ thử gọi GitHub API lấy link + hash bản patch mới nhất trước khi cài, thay vì dùng PatchDownloadUrl hardcode.</summary>
+        public string GitHubOwner { get; set; } = "";
+        public string GitHubRepo { get; set; } = "";
+        public string AssetNameContains { get; set; } = "";
+
         public List<string> RequiredGameFiles { get; set; } = new()
             {
                 @"PlagueIncEvolved_Data\resources.assets",
@@ -113,12 +130,29 @@ namespace VietHoaInstaller.Services
 
             try
             {
-                progress.Report(new InstallProgress(0, "Đang kết nối máy chủ..."));
-                await DownloadFileAsync(PatchDownloadUrl, zipPath, downloadPercent =>
+                // ===== BƯỚC 0: THỬ LẤY LINK + HASH PATCH MỚI NHẤT TỪ GITHUB (nếu có cấu hình repo) =====
+                string downloadUrl = PatchDownloadUrl;
+                if (!string.IsNullOrWhiteSpace(GitHubOwner) && !string.IsNullOrWhiteSpace(GitHubRepo))
                 {
-                    int overall = (int)(downloadPercent * 0.7);
-                    progress.Report(new InstallProgress(overall, $"Đang tải bản Việt hóa... {downloadPercent}%"));
-                }, ct);
+                    progress.Report(new InstallProgress(0, "Đang kiểm tra bản patch mới nhất..."));
+                    var release = await GitHubReleaseService.GetLatestReleaseAsync(GitHubOwner, GitHubRepo, ct);
+                    var asset = release != null ? GitHubReleaseService.FindAsset(release, AssetNameContains) : null;
+
+                    if (asset != null)
+                    {
+                        downloadUrl = asset.BrowserDownloadUrl;
+                        string? autoHash = GitHubReleaseService.ExtractSha256Hex(asset.Digest);
+                        if (autoHash != null)
+                        {
+                            ExpectedHash = autoHash;
+                            HashAlgorithmName = "SHA256";
+                        }
+                    }
+                    // Không lấy được từ GitHub (mất mạng/hết rate limit) -> downloadUrl vẫn giữ nguyên PatchDownloadUrl hardcode ở trên, không chặn cài đặt.
+                }
+
+                progress.Report(new InstallProgress(0, "Đang kết nối máy chủ..."));
+                await DownloadWithResumeAndVerifyAsync(downloadUrl, zipPath, progress, ct);
 
                 progress.Report(new InstallProgress(72, "Đang giải nén gói Việt hóa..."));
                 Directory.CreateDirectory(extractDir);
@@ -336,21 +370,41 @@ namespace VietHoaInstaller.Services
             }, ct);
         }
 
-        /// <summary>Tải file từ URL về đường dẫn cục bộ, báo % tiến trình qua callback.</summary>
-        private static async Task DownloadFileAsync(string url, string destinationPath, Action<int> onProgress, CancellationToken ct)
+        /// <summary>
+        /// Tải file từ URL về đường dẫn cục bộ. Nếu đã có file tải dở (từ lần trước bị mất mạng),
+        /// tự động resume tiếp bằng HTTP Range request thay vì tải lại từ đầu. Sau khi tải xong,
+        /// nếu có ExpectedHash thì xác thực tính toàn vẹn — nếu sai, xóa file lỗi và ném lỗi để tải lại từ đầu.
+        /// </summary>
+        private async Task DownloadWithResumeAndVerifyAsync(string url, string destinationPath, IProgress<InstallProgress> progress, CancellationToken ct)
         {
-            using var httpClient = new HttpClient();
-            using var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
+            long existingBytes = File.Exists(destinationPath) ? new FileInfo(destinationPath).Length : 0;
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            if (existingBytes > 0)
+                request.Headers.Range = new RangeHeaderValue(existingBytes, null);
+
+            using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+
+            // Server không hỗ trợ resume (trả về 200 thay vì 206 Partial Content) -> tải lại từ đầu cho an toàn
+            bool serverSupportsResume = response.StatusCode == System.Net.HttpStatusCode.PartialContent;
+            if (existingBytes > 0 && !serverSupportsResume)
+            {
+                existingBytes = 0;
+            }
+
             response.EnsureSuccessStatusCode();
 
-            long? totalBytes = response.Content.Headers.ContentLength;
+            long? contentLength = response.Content.Headers.ContentLength;
+            long totalBytes = existingBytes + (contentLength ?? 0);
 
             await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
             await using var fileStream = new FileStream(
-                destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+                destinationPath,
+                existingBytes > 0 && serverSupportsResume ? FileMode.Append : FileMode.Create,
+                FileAccess.Write, FileShare.None, 81920, useAsync: true);
 
             var buffer = new byte[81920];
-            long totalRead = 0;
+            long totalRead = existingBytes;
             int bytesRead;
 
             while ((bytesRead = await contentStream.ReadAsync(buffer, ct)) > 0)
@@ -358,12 +412,44 @@ namespace VietHoaInstaller.Services
                 await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
                 totalRead += bytesRead;
 
-                if (totalBytes is > 0)
+                if (totalBytes > 0)
                 {
-                    int pct = (int)(totalRead * 100 / totalBytes.Value);
-                    onProgress(pct);
+                    int downloadPercent = (int)(totalRead * 100 / totalBytes);
+                    int overall = (int)(downloadPercent * 0.7); // dải 0% -> 70%
+                    progress.Report(new InstallProgress(overall, $"Đang tải bản Việt hóa... {downloadPercent}%"));
                 }
             }
+
+            fileStream.Close();
+
+            if (!string.IsNullOrWhiteSpace(ExpectedHash))
+            {
+                progress.Report(new InstallProgress(70, "Đang xác thực file tải về..."));
+                bool valid = await VerifyHashAsync(destinationPath);
+                if (!valid)
+                {
+                    try { File.Delete(destinationPath); } catch { }
+                    throw new InvalidOperationException(
+                        "File patch tải về bị lỗi hoặc không toàn vẹn (sai hash). Vui lòng thử cài đặt lại.");
+                }
+            }
+        }
+
+        /// <summary>So khớp hash (MD5/SHA-256) của file đã tải với ExpectedHash. Nếu ExpectedHash rỗng thì luôn coi là hợp lệ (bỏ qua xác thực).</summary>
+        private async Task<bool> VerifyHashAsync(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(ExpectedHash))
+                return true;
+
+            using System.Security.Cryptography.HashAlgorithm hasher = HashAlgorithmName.ToUpperInvariant() == "MD5"
+                ? MD5.Create()
+                : SHA256.Create();
+
+            await using var stream = File.OpenRead(filePath);
+            byte[] hashBytes = await hasher.ComputeHashAsync(stream, CancellationToken.None);
+            string actualHash = Convert.ToHexString(hashBytes);
+
+            return actualHash.Equals(ExpectedHash, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
