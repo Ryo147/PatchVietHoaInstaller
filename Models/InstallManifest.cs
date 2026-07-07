@@ -20,5 +20,6 @@ namespace VietHoaInstaller.Models
         public List<string> RelativeFiles { get; set; } = new();
         public string InstallMode { get; set; } = "OverwriteFiles";
         public string ModFolderRelativePath { get; set; } = "";
+        public string ProfileName { get; set; } = "";   
     }
 }

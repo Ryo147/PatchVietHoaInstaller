@@ -20,7 +20,7 @@ namespace VietHoaInstaller.Services
     /// </summary>
     public static class AppUpdaterService
     {
-        private static readonly HttpClient _http = new();
+        private static readonly HttpClient _http = new() { Timeout = Timeout.InfiniteTimeSpan };
 
         /// <summary>Tải file .exe mới về thư mục tạm, xác thực hash nếu có, rồi trả về đường dẫn file đã tải.</summary>
         public static async Task<string> DownloadNewVersionAsync(

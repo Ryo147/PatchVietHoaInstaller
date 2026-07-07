@@ -45,6 +45,11 @@ namespace VietHoaInstaller.Models
         /// khi đó bỏ qua kiểm tra RequiredGameFiles — cho phép người dùng chọn thư mục bất kỳ.
         /// </summary>
         public bool SkipGameFolderValidation { get; set; } = false;
+        /// <summary>
+        /// Đường dẫn tương đối (tính từ thư mục vừa cài) của file .exe cần hỏi mở sau khi cài xong
+        /// (vd: "FluffyModManager.exe"). Để rỗng nếu không cần tự mở gì.
+        /// </summary>
+        public string LaunchExeRelativePath { get; set; } = "";
     }
     public static class GameCatalog
     {
@@ -75,6 +80,7 @@ namespace VietHoaInstaller.Models
                 BannerImagePath = "/Assets/RE2_DX11.png", // TODO: đảm bảo file này nằm trong thư mục Assets
                 SteamAppId = "883710",
                 SkipGameFolderValidation = true,
+                LaunchExeRelativePath = "RE2R-Mod/Modmanager.exe",   // <-- thêm
                 GitHubOwner = "Ryo147",
                 GitHubRepo = "PatchVH",
                 AssetNameContains = "RE2R"

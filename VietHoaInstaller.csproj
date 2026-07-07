@@ -27,6 +27,16 @@
 		<SatelliteResourceLanguages>vi</SatelliteResourceLanguages>
 		<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
 		<ApplicationIcon>Assets\Dich2000sICON.ico</ApplicationIcon>
+
+		<!-- Giảm dung lượng: tắt các tính năng chẩn đoán/telemetry hiếm khi cần cho 1 tool cài đặt nhỏ -->
+		<EventSourceSupport>false</EventSourceSupport>
+		<HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
+		<UseRidGraph>false</UseRidGraph>
+
+		<!-- Cân nhắc: ReadyToRun giúp khởi động nhanh hơn nhưng làm file to hơn đáng kể (native code precompiled).
+			 Nếu ưu tiên dung lượng nhỏ hơn tốc độ khởi động (installer chỉ chạy 1 lần, không cần nhanh gấp),
+			 có thể tắt hẳn dòng PublishReadyToRun đang có -->	
+		<!-- <PublishReadyToRun>false</PublishReadyToRun> -->
 	</PropertyGroup>
 
 	<ItemGroup>

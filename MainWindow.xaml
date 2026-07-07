@@ -52,7 +52,7 @@
                     <TextBlock x:Name="RunUpdateMessage" Foreground="#FFD98A" FontSize="12" VerticalAlignment="Center"
                                Text="🔔 Đã có bản cập nhật mới!"/>
                     <Button x:Name="BtnUpdateNow" Content="Cập nhật ngay" Margin="10,0,0,0"
-                            Style="{StaticResource BrowseButtonStyle}" Click="BtnUpdateNow_Click"/>
+                            Style="{StaticResource UpdateButtonStyle}" Click="BtnUpdateNow_Click"/>
                     <TextBlock Margin="10,0,0,0" FontSize="12" VerticalAlignment="Center">
                         <Hyperlink x:Name="LinkUpdateDownload" RequestNavigate="Hyperlink_RequestNavigate">
                             <Run Foreground="#FF8B90A3" Text="Xem chi tiết"/>
@@ -110,7 +110,7 @@
                 </StackPanel>
 
                 <!-- ===== LABEL THƯ MỤC GAME ===== -->
-                <TextBlock Grid.Row="6" Text="Thư mục game:"
+                <TextBlock x:Name="LblFolderLabel" Grid.Row="6" Text="Thư mục game:"
                            Foreground="{StaticResource TextPrimaryBrush}" FontSize="13.5" FontFamily="Arial"/>
 
                 <!-- ===== Ô ĐƯỜNG DẪN + NÚT CHỌN ===== -->

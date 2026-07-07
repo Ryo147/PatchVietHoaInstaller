@@ -187,6 +187,36 @@
             </Setter>
         </Style>
 
+        <!-- ===== NÚT "Cập nhật ngay" ===== -->
+        <Style x:Key="UpdateButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="25"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Foreground" Value="#1B1F2A"/>
+            <Setter Property="FontFamily" Value="Arial Semibold"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Background" Value="#FFD98A"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.7"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
         <!-- ===== PROGRESS BAR ===== -->
         <Style x:Key="InstallProgressBarStyle" TargetType="ProgressBar">
             <Setter Property="Height" Value="18"/>

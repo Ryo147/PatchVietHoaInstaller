@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VietHoaInstaller")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("2.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("2.0.0+a40c5ea94e2cdfaf1e21a35c1556e440c01f35aa")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("2.0.0+cfddef2bfb992701a8488eb582fb5b008e6266ec")]
 [assembly: System.Reflection.AssemblyProductAttribute("VietHoaInstaller")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VietHoaInstaller")]
 [assembly: System.Reflection.AssemblyVersionAttribute("2.0.0.0")]
