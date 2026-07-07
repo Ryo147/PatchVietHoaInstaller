@@ -9,7 +9,13 @@
 		<RootNamespace>VietHoaInstaller</RootNamespace>
 
 		<!-- Nguồn duy nhất khai báo version của app. Mỗi lần release, chỉ cần sửa số này ở đây -->
-		<Version>2.0</Version>
+		<Version>2.0.0</Version>
+
+		<!-- Prevent duplicate assembly attributes -->
+		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+		<Company>VietHoaInstaller</Company>
+		<Product>VietHoaInstaller</Product>
+		<Title>VietHoaInstaller</Title>
 
 		<!-- Đóng gói tối ưu: 1 file .exe duy nhất, không cần cài .NET Runtime -->
 		<SelfContained>true</SelfContained>

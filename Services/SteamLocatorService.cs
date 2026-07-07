@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -108,6 +108,39 @@ namespace VietHoaInstaller.Services
             {
                 string content = File.ReadAllText(manifestPath);
                 var match = Regex.Match(content, "\"installdir\"\\s*\"([^\"]+)\"");
+                return match.Success ? match.Groups[1].Value : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Đọc "buildid" hiện tại của game đã cài, dùng để cảnh báo nếu bản Steam đang chạy khác với
+        /// bản mà nhóm dịch đã test bản Việt hóa. Chỉ hoạt động nếu gameFolder nằm đúng theo cấu trúc
+        /// thư viện Steam chuẩn (.../steamapps/common/&lt;installdir&gt;) — nếu người dùng copy game ra
+        /// chỗ khác thì trả về null (bỏ qua kiểm tra, không chặn cài đặt).
+        /// </summary>
+        public static string? GetInstalledBuildId(string gameFolder, string steamAppId)
+        {
+            if (string.IsNullOrWhiteSpace(steamAppId) || string.IsNullOrWhiteSpace(gameFolder))
+                return null;
+
+            try
+            {
+                // gameFolder = ".../steamapps/common/<installdir>" -> đi lên 2 cấp để ra thư mục "steamapps"
+                var commonDir = Directory.GetParent(gameFolder);
+                var steamappsDir = commonDir != null ? Directory.GetParent(commonDir.FullName) : null;
+                if (steamappsDir == null || !steamappsDir.Name.Equals("steamapps", StringComparison.OrdinalIgnoreCase))
+                    return null;
+
+                string manifestPath = Path.Combine(steamappsDir.FullName, $"appmanifest_{steamAppId}.acf");
+                if (!File.Exists(manifestPath))
+                    return null;
+
+                string content = File.ReadAllText(manifestPath);
+                var match = Regex.Match(content, "\"buildid\"\\s*\"([^\"]+)\"");
                 return match.Success ? match.Groups[1].Value : null;
             }
             catch
