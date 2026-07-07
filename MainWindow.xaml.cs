@@ -49,6 +49,7 @@ namespace VietHoaInstaller
                 _installer.RequiredGameFiles = profile.RequiredGameFiles;
                 _installer.InstallMode = profile.InstallMode;
                 _installer.ModFolderRelativePath = profile.ModFolderRelativePath;
+                _installer.SkipGameFolderValidation = profile.SkipGameFolderValidation;
                 _installer.ExpectedHash = profile.ExpectedHash;
                 _installer.HashAlgorithmName = profile.HashAlgorithmName;
                 _installer.GitHubOwner = profile.GitHubOwner;
@@ -96,7 +97,9 @@ namespace VietHoaInstaller
         {
             var dialog = new OpenFolderDialog
             {
-                Title = "Chọn thư mục cài đặt game",
+                Title = (CmbGame.SelectedItem as Models.GameProfile)?.SkipGameFolderValidation == true
+                    ? "Chọn thư mục muốn cài FluffyModManager"
+                    : "Chọn thư mục cài đặt game",
                 Multiselect = false
             };
 

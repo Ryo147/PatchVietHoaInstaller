@@ -1,18 +1,18 @@
 ﻿VietHoaInstaller
-1.0.0.0
+2.0.0.0
 
 winexe
 C#
 .cs
-C:\Users\Nhua Inox\source\repos\VietHoaInstaller\VietHoaInstaller\obj\Debug\net10.0-windows\win-x64\
+C:\Users\Nhua Inox\source\repos\PatchVietHoaInstaller\PatchVietHoaInstaller\obj\Debug\net10.0-windows\win-x64\
 VietHoaInstaller
 none
 false
 TRACE;DEBUG;NET;NET10_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NET9_0_OR_GREATER;NET10_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
-C:\Users\Nhua Inox\source\repos\VietHoaInstaller\VietHoaInstaller\App.xaml
+C:\Users\Nhua Inox\source\repos\PatchVietHoaInstaller\PatchVietHoaInstaller\App.xaml
 11407045341
 
-10525637731
+15713831540
 206-1943539212
 MainWindow.xaml;
 
