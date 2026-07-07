@@ -50,11 +50,18 @@ namespace VietHoaInstaller
                 _installer.InstallMode = profile.InstallMode;
                 _installer.ModFolderRelativePath = profile.ModFolderRelativePath;
                 _installer.SkipGameFolderValidation = profile.SkipGameFolderValidation;
+                _installer.ProfileName = profile.Name;
                 _installer.ExpectedHash = profile.ExpectedHash;
                 _installer.HashAlgorithmName = profile.HashAlgorithmName;
                 _installer.GitHubOwner = profile.GitHubOwner;
                 _installer.GitHubRepo = profile.GitHubRepo;
                 _installer.AssetNameContains = profile.AssetNameContains;
+
+                // ===== Đổi nhãn tùy theo profile có phải bundle trình khởi động (Fluffy...) hay không =====
+                LblFolderLabel.Text = profile.SkipGameFolderValidation
+                    ? "Thư mục cài đặt FluffyModManager + PATCH:"
+                    : "Thư mục game:";
+                BtnAutoDetect.IsEnabled = !profile.SkipGameFolderValidation;
 
                 UpdateBanner(profile.BannerImagePath);
                 AppendLog($"Đã chọn game: {profile.Name}");
@@ -95,11 +102,13 @@ namespace VietHoaInstaller
         // ================= CHỌN THƯ MỤC GAME =================
         private void BtnBrowse_Click(object sender, RoutedEventArgs e)
         {
+            bool isLauncherBundle = (CmbGame.SelectedItem as Models.GameProfile)?.SkipGameFolderValidation == true;
+
             var dialog = new OpenFolderDialog
             {
-                Title = (CmbGame.SelectedItem as Models.GameProfile)?.SkipGameFolderValidation == true
-                    ? "Chọn thư mục muốn cài FluffyModManager"
-                    : "Chọn thư mục cài đặt game",
+                Title = isLauncherBundle
+                    ? "Chọn thư mục muốn cài Fluffy Mod Manager + PATCH"
+                    : "Chọn thư mục cài đặt PATCH",
                 Multiselect = false
             };
 
@@ -163,8 +172,12 @@ namespace VietHoaInstaller
 
             if (!Directory.Exists(gameFolder))
             {
-                MessageBox.Show("Vui lòng chọn thư mục game hợp lệ trước.", "Thiếu thông tin",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                bool isLauncherBundle = (CmbGame.SelectedItem as Models.GameProfile)?.SkipGameFolderValidation == true;
+                MessageBox.Show(
+                    isLauncherBundle
+                        ? "Vui lòng chọn thư mục muốn cài trình khởi động trước."
+                        : "Vui lòng chọn thư mục game hợp lệ trước.",
+                    "Thiếu thông tin", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -232,6 +245,41 @@ namespace VietHoaInstaller
                 BtnUninstall.IsEnabled = true;
                 BtnInstall.IsEnabled = false;
                 AppendLog("Cài đặt Việt hóa thành công.");
+
+                // ===== Thông báo vị trí FluffyModManager.exe và hỏi có muốn chạy ngay không =====
+                if (CmbGame.SelectedItem is Models.GameProfile p && !string.IsNullOrWhiteSpace(p.LaunchExeRelativePath))
+                {
+                    string exePath = Path.Combine(gameFolder, p.ModFolderRelativePath, p.LaunchExeRelativePath);
+                    if (File.Exists(exePath))
+                    {
+                        AppendLog($"Đã cài {Path.GetFileName(exePath)} tại: {exePath}");
+
+                        var runNow = MessageBox.Show(
+                            $"Cài đặt hoàn tất!\n\n{Path.GetFileName(exePath)} đã được cài tại:\n{exePath}\n\nBạn có muốn chạy {Path.GetFileName(exePath)} ngay bây giờ không?",
+                            "Hoàn tất", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                        if (runNow == MessageBoxResult.Yes)
+                        {
+                            try
+                            {
+                                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                                {
+                                    FileName = exePath,
+                                    WorkingDirectory = Path.GetDirectoryName(exePath),
+                                    UseShellExecute = true
+                                });
+                            }
+                            catch (Exception ex)
+                            {
+                                AppendLog($"Không thể chạy {Path.GetFileName(exePath)}: {ex.Message}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        AppendLog($"CẢNH BÁO: không tìm thấy {exePath} sau khi cài — kiểm tra lại nội dung file zip patch.");
+                    }
+                }
 
                 // Hiện "Hoàn tất" trong chốc lát rồi tự ẩn thanh tiến trình
                 await Task.Delay(800);
@@ -329,7 +377,8 @@ namespace VietHoaInstaller
 
             if (string.IsNullOrWhiteSpace(profile.SteamAppId))
             {
-                MessageBox.Show("Game này chưa hỗ trợ tự động dò tìm, vui lòng bấm \"Chọn...\" để chọn thư mục thủ công.",
+                MessageBox.Show(
+                    "Game này chưa hỗ trợ tự động dò tìm, vui lòng bấm \"Chọn...\" để chọn thư mục thủ công.",
                     "Chưa hỗ trợ", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
@@ -339,9 +388,11 @@ namespace VietHoaInstaller
             {
                 AppendLog($"Tự động dò tìm thất bại cho: {profile.Name}");
                 MessageBox.Show(
-                    "Không tìm thấy game qua Steam. Có thể bạn chưa cài Steam, chưa cài game này, " +
-                    "hoặc cài ở ổ đĩa Steam đã gỡ liên kết (offline library).\nVui lòng bấm \"Chọn...\" để chọn thư mục thủ công.",
-                    "Không tìm thấy", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    "Không tìm thấy game qua Steam. Có thể bạn chưa cài Steam, chưa cài game này, cài ở ổ đĩa " +
+                    "Steam đã gỡ liên kết (offline library), hoặc đang dùng bản không qua Steam.\n" +
+                    "Vui lòng bấm \"Chọn...\" để chọn thư mục thủ công.",
+                    "Không tìm thấy",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -511,7 +562,9 @@ namespace VietHoaInstaller
                 bitmap.BeginInit();
                 bitmap.UriSource = packUri;
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.DecodePixelWidth = 700;   // Ép decode nhỏ lại, khớp độ rộng banner thật trên UI
                 bitmap.EndInit();
+                bitmap.Freeze();                 // Cho phép GC dọn dẹp tốt hơn, tránh giữ tham chiếu thừa
 
                 BannerImageBrush.ImageSource = bitmap;
             }

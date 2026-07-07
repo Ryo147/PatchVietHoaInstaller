@@ -29,7 +29,7 @@ namespace VietHoaInstaller.Services
         private const string ManifestFileName = "manifest.json";
 
         // Dùng chung 1 HttpClient cho cả app thay vì tạo mới mỗi lần tải — tránh cạn kiệt socket khi tải nhiều lần.
-        private static readonly HttpClient _http = new();
+        private static readonly HttpClient _http = new() { Timeout = Timeout.InfiniteTimeSpan };
 
         public string PatchDownloadUrl { get; set; } = "https://github.com/Ryo147/PatchVH-Plague-Inc./releases/download/PatchLocalization/PatchVH_P.I_v.BETA.zip";
         public GameInstallMode InstallMode { get; set; } = GameInstallMode.OverwriteFiles;
@@ -58,7 +58,19 @@ namespace VietHoaInstaller.Services
         public bool IsInstalled(string gameFolder)
         {
             if (string.IsNullOrWhiteSpace(gameFolder)) return false;
-            return File.Exists(GetManifestPath(gameFolder));
+            if (!File.Exists(GetManifestPath(gameFolder))) return false;
+
+            // Nếu đã biết đang cài cho profile nào, và manifest cũ có ghi rõ ProfileName,
+            // chỉ coi là "đã cài" nếu đúng là bản cài của CÙNG profile này. Tránh báo nhầm
+            // "đã cài trước đó" khi 2 profile khác nhau (vd Plague Inc và Fluffy bundle) lỡ trỏ chung 1 thư mục.
+            if (!string.IsNullOrWhiteSpace(ProfileName))
+            {
+                var existing = LoadManifest(gameFolder);
+                if (existing != null && !string.IsNullOrWhiteSpace(existing.ProfileName))
+                    return existing.ProfileName == ProfileName;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -68,13 +80,15 @@ namespace VietHoaInstaller.Services
         /// backup và thay bằng file Việt hóa — không còn file gốc để so khớp.
         /// </summary>
         public bool SkipGameFolderValidation { get; set; } = false;
+        /// <summary>Tên profile game hiện đang chọn, dùng để phân biệt các profile khác nhau lỡ dùng chung 1 thư mục.</summary>
+        public string ProfileName { get; set; } = "";
         public GameFolderCheckResult ValidateGameFolder(string gameFolder)
         {
             if (string.IsNullOrWhiteSpace(gameFolder) || !Directory.Exists(gameFolder))
                 return new GameFolderCheckResult(false, "Thư mục không tồn tại.");
 
             if (SkipGameFolderValidation)
-                return new GameFolderCheckResult(true, "");   // <-- thêm dòng này
+                return new GameFolderCheckResult(true, "");
 
             if (IsInstalled(gameFolder))
                 return new GameFolderCheckResult(true, "");
@@ -228,7 +242,8 @@ namespace VietHoaInstaller.Services
             {
                 GameFolder = gameFolder,
                 InstalledAtUtc = DateTime.UtcNow,
-                InstallMode = GameInstallMode.OverwriteFiles.ToString()
+                InstallMode = GameInstallMode.OverwriteFiles.ToString(),
+                ProfileName = ProfileName
             };
 
             var allFiles = Directory.GetFiles(extractDir, "*", SearchOption.AllDirectories);
@@ -270,7 +285,8 @@ namespace VietHoaInstaller.Services
                 GameFolder = gameFolder,
                 InstalledAtUtc = DateTime.UtcNow,
                 InstallMode = GameInstallMode.CopyToModFolder.ToString(),
-                ModFolderRelativePath = ModFolderRelativePath
+                ModFolderRelativePath = ModFolderRelativePath,
+                ProfileName = ProfileName
             };
 
             var allFiles = Directory.GetFiles(extractDir, "*", SearchOption.AllDirectories);
