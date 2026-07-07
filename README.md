@@ -16,4 +16,4 @@ Develop by Claude / Editing by Nhựa Inox (Ryo147)
 
 Do bộ cài có cơ chế can thiệp ghi đè file và truy cập Registry để tìm đường dẫn game, một số trình Antivirus có thể sẽ cảnh báo nhầm (False Positive).
 
-[Xem báo cáo hành vi chi tiết trên VirusTotal](https://www.virustotal.com/gui/file/7554dc2b023957b0c2314c75c4e25924e5b4c144e2df1308192db5c8062a2eee/behavior)
+[Xem báo cáo chi tiết trên VirusTotal](https://www.virustotal.com/gui/file/7554dc2b023957b0c2314c75c4e25924e5b4c144e2df1308192db5c8062a2eee/behavior)
