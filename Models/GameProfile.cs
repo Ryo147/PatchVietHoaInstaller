@@ -57,7 +57,7 @@ namespace VietHoaInstaller.Models
         {
             new GameProfile
             {
-                Name = "[BETA EARLY ACCESS] Plague Inc: Evolved",
+                Name = "Plague Inc: Evolved",
                 PatchDownloadUrl = "https://github.com/Ryo147/PatchVH/releases/download/PatchLocalization/PatchVH_P.I._BETA.zip",
                 RequiredGameFiles = new()
                 {
@@ -72,8 +72,8 @@ namespace VietHoaInstaller.Models
             },
             new GameProfile
             {
-                Name = "[CHƯA HOÀN THIỆN] Resident Evil 2 Remake (DX11_NON-RT) w/ Fluffy Mod Manager",
-                PatchDownloadUrl = "https://github.com/Ryo147/PatchVH/releases/download/PatchLocalization/RE2R_DX11_PATCHVH_ALPHA.zip", // TODO: đổi link thật
+                Name = "[PLACEHOLDER PROFILE] Resident Evil 2 Remake (DX11_NON-RT) w/ Fluffy Mod Manager",
+                PatchDownloadUrl = "", // TODO: đổi link thật
                 RequiredGameFiles = new() { @"re2.exe" }, // file dùng để nhận diện đúng thư mục game
                 InstallMode = GameInstallMode.CopyToModFolder,
                 ModFolderRelativePath = "", // zip đã có sẵn "natives\..." ở gốc -> copy thẳng vào gốc thư mục game, không cộng thêm thư mục con

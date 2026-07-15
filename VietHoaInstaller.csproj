@@ -9,7 +9,7 @@
 		<RootNamespace>VietHoaInstaller</RootNamespace>
 
 		<!-- Nguồn duy nhất khai báo version của app. Mỗi lần release, chỉ cần sửa số này ở đây -->
-		<Version>2.0.0</Version>
+		<Version>2.1.0</Version>
 
 		<!-- Prevent duplicate assembly attributes -->
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
