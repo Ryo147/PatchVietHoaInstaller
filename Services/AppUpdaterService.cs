@@ -26,6 +26,7 @@ namespace VietHoaInstaller.Services
         public static async Task<string> DownloadNewVersionAsync(
             string downloadUrl, string? expectedSha256, IProgress<AppUpdateProgress> progress, CancellationToken ct)
         {
+            PatchInstallerService.EnsureSafeDownloadUrl(downloadUrl);
             string tempExePath = Path.Combine(Path.GetTempPath(), "VietHoaInstaller_update_" + Guid.NewGuid().ToString("N") + ".exe");
 
             using var response = await _http.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, ct);
@@ -39,6 +40,7 @@ namespace VietHoaInstaller.Services
                 var buffer = new byte[81920];
                 long totalRead = 0;
                 int bytesRead;
+                int lastReportedPercent = -1;
 
                 while ((bytesRead = await contentStream.ReadAsync(buffer, ct)) > 0)
                 {
@@ -48,24 +50,32 @@ namespace VietHoaInstaller.Services
                     if (totalBytes is > 0)
                     {
                         int pct = (int)(totalRead * 100 / totalBytes.Value);
-                        progress.Report(new AppUpdateProgress(pct, $"Đang tải bản cập nhật... {pct}%"));
+                        if (pct != lastReportedPercent)
+                        {
+                            lastReportedPercent = pct;
+                            progress.Report(new AppUpdateProgress(pct, $"Đang tải bản cập nhật... {pct}%"));
+                        }
                     }
                 }
             }
-
-            if (!string.IsNullOrWhiteSpace(expectedSha256))
+                if (string.IsNullOrWhiteSpace(expectedSha256))
             {
-                progress.Report(new AppUpdateProgress(100, "Đang xác thực file tải về..."));
-                using var sha256 = SHA256.Create();
-                await using var verifyStream = File.OpenRead(tempExePath);
-                byte[] hashBytes = await sha256.ComputeHashAsync(verifyStream, ct);
-                string actualHash = Convert.ToHexString(hashBytes);
+                try { File.Delete(tempExePath); } catch { }
+                throw new InvalidOperationException(
+                    "Không thể xác thực tính bản cập nhật (thiếu SHA-256 từ GitHub). " +
+                    "Vui lòng tải bản mới tại trang GitHub của phần mềm.");
+            }
 
-                if (!actualHash.Equals(expectedSha256, StringComparison.OrdinalIgnoreCase))
-                {
-                    try { File.Delete(tempExePath); } catch { }
-                    throw new InvalidOperationException("File cập nhật tải về bị lỗi (sai hash). Vui lòng thử lại sau.");
-                }
+            progress.Report(new AppUpdateProgress(100, "Đang xác thực file tải về..."));
+            using var sha256 = SHA256.Create();
+            await using var verifyStream = File.OpenRead(tempExePath);
+            byte[] hashBytes = await sha256.ComputeHashAsync(verifyStream, ct);
+            string actualHash = Convert.ToHexString(hashBytes);
+
+            if (!actualHash.Equals(expectedSha256, StringComparison.OrdinalIgnoreCase))
+            {
+                try { File.Delete(tempExePath); } catch { }
+                throw new InvalidOperationException("File cập nhật tải về bị lỗi (sai hash). Vui lòng thử lại sau.");
             }
 
             return tempExePath;

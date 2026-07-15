@@ -54,6 +54,26 @@ namespace VietHoaInstaller.Services
         private string GetBackupFolder(string gameFolder) => Path.Combine(gameFolder, BackupFolderName);
         private string GetManifestPath(string gameFolder) => Path.Combine(GetBackupFolder(gameFolder), ManifestFileName);
 
+        private static readonly string[] AllowedDownloadHosts =
+        {
+            "github.com",
+            "objects.githubusercontent.com",
+            "codeload.github.com",
+            "release-assets.githubusercontent.com"
+        };
+
+        internal static void EnsureSafeDownloadUrl(string url)
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
+                throw new InvalidOperationException($"Nguồn tải không an toàn (bắt buộc HTTPS): {url}");
+
+            bool allowedHost = AllowedDownloadHosts.Any(h =>
+                uri.Host.Equals(h, StringComparison.OrdinalIgnoreCase) ||
+                uri.Host.EndsWith("." + h, StringComparison.OrdinalIgnoreCase));
+
+            if (!allowedHost)
+                throw new InvalidOperationException($"Nguồn tải không nằm trong danh sách cho phép: {uri.Host}");
+        }
         /// <summary>Kiểm tra thư mục game đã được cài Việt hóa (bởi chính tool này) hay chưa.</summary>
         public bool IsInstalled(string gameFolder)
         {
@@ -140,12 +160,16 @@ namespace VietHoaInstaller.Services
             var folderCheck = ValidateGameFolder(gameFolder);
             if (!folderCheck.IsValid)
                 throw new InvalidOperationException(folderCheck.Message);
+            string stableKey = string.IsNullOrWhiteSpace(ProfileName) ? "default" : ProfileName;
+            foreach (char c in Path.GetInvalidFileNameChars())
+                stableKey = stableKey.Replace(c, '_');
 
-            string tempDir = Path.Combine(Path.GetTempPath(), "VietHoaInstaller_" + Guid.NewGuid().ToString("N"));
+            string tempDir = Path.Combine(Path.GetTempPath(), "VietHoaInstaller_dl_" + stableKey);
             string zipPath = Path.Combine(tempDir, "patch.zip");
-            string extractDir = Path.Combine(tempDir, "extracted");
+            string extractDir = Path.Combine(tempDir, "extracted_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tempDir);
 
+            bool installSucceeded = false;
             try
             {
                 // ===== BƯỚC 0: THỬ LẤY LINK + HASH PATCH MỚI NHẤT TỪ GITHUB (nếu có cấu hình repo) =====
@@ -189,11 +213,19 @@ namespace VietHoaInstaller.Services
                     JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true }));
 
                 progress.Report(new InstallProgress(100, "Hoàn tất! Đã cài đặt Việt hóa."));
+                installSucceeded = true;
             }
             finally
             {
-                try { Directory.Delete(tempDir, recursive: true); }
-                catch { }
+                // Luôn dọn thư mục giải nén tạm (không cần giữ để resume)
+                try { Directory.Delete(extractDir, recursive: true); } catch { }
+
+                // Chỉ xóa file zip đã tải khi CÀI THÀNH CÔNG. Nếu lỗi (mất mạng, hủy...),
+                // GIỮ LẠI zip dở dang để lần InstallAsync kế tiếp resume tiếp từ chỗ dang dở.
+                if (installSucceeded)
+                {
+                    try { Directory.Delete(tempDir, recursive: true); } catch { }
+                }
             }
         }
 
@@ -201,21 +233,40 @@ namespace VietHoaInstaller.Services
         /// Giải nén zip thủ công từng entry (thay vì gọi ZipFile.ExtractToDirectory một phát),
         /// để báo tiến trình thật theo số file đã giải nén — tránh thanh progress bị đứng im rồi nhảy khựng.
         /// </summary>
+        /// <summary>Giới hạn tổng dung lượng sau giải nén, chặn zip-bomb (file zip nhỏ nhưng giải nén ra khổng lồ).</summary>
+        private const long MaxTotalUncompressedBytes = 10L * 1024 * 1024 * 1024; // 10 GB
+        private const long MaxSingleEntryUncompressedBytes = 4L * 1024 * 1024 * 1024; // 4 GB
+        private const int MaxEntryCount = 50_000;
+
         private static void ExtractZipWithProgress(string zipPath, string extractDir, IProgress<InstallProgress> progress, CancellationToken ct)
         {
             using var archive = ZipFile.OpenRead(zipPath);
             var entries = archive.Entries.ToList();
 
+            if (entries.Count > MaxEntryCount)
+                throw new InvalidOperationException($"Gói Việt hóa có quá nhiều file ({entries.Count}), vượt giới hạn an toàn.");
+
             int total = Math.Max(entries.Count, 1);
             int done = 0;
+            string extractDirFull = Path.GetFullPath(extractDir) + Path.DirectorySeparatorChar;
+
+            if (entries.Sum(e => e.Length) > MaxTotalUncompressedBytes)
+                throw new InvalidOperationException(
+                    $"Gói Việt hóa sau khi giải nén vượt quá giới hạn an toàn ({MaxTotalUncompressedBytes / (1024 * 1024 * 1024)}GB). Có thể file đã bị hỏng hoặc đã bị chỉnh sửa.");
+
+            long actualTotalWritten = 0;
 
             foreach (var entry in entries)
             {
                 ct.ThrowIfCancellationRequested();
 
-                string destPath = Path.Combine(extractDir, entry.FullName);
+                if (entry.Length > MaxSingleEntryUncompressedBytes)
+                    throw new InvalidOperationException($"File '{entry.FullName}' trong gói Việt hóa vượt quá giới hạn kích thước 1 file.");
 
-                // Entry là thư mục (không có tên file) -> chỉ cần tạo thư mục
+                string destPath = Path.GetFullPath(Path.Combine(extractDir, entry.FullName));
+                if (!destPath.StartsWith(extractDirFull, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException($"File patch chứa đường dẫn không hợp lệ, có thể đã bị chỉnh sửa: {entry.FullName}");
+
                 if (string.IsNullOrEmpty(entry.Name))
                 {
                     Directory.CreateDirectory(destPath);
@@ -223,15 +274,29 @@ namespace VietHoaInstaller.Services
                 else
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
-                    entry.ExtractToFile(destPath, overwrite: true);
+
+                    // Đọc/ghi thủ công qua stream (thay vì entry.ExtractToFile) để đếm byte GIẢI NÉN THẬT,
+                    // chặn zip-bomb kiểu giả mạo metadata Length trong central directory.
+                    using var entryStream = entry.Open();
+                    using var outStream = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920);
+
+                    var buffer = new byte[81920];
+                    int read;
+                    while ((read = entryStream.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        actualTotalWritten += read;
+                        if (actualTotalWritten > MaxTotalUncompressedBytes)
+                            throw new InvalidOperationException("Dữ liệu giải nén vượt quá giới hạn an toàn — gói Việt hóa có thể đã bị can thiệp.");
+                        outStream.Write(buffer, 0, read);
+                    }
                 }
 
                 done++;
-                int pct = 72 + (int)((done / (double)total) * 10); // dải 72% -> 82%
+                int pct = 72 + (int)((done / (double)total) * 10);
                 progress.Report(new InstallProgress(pct, $"Đang giải nén ({done}/{total} file)..."));
             }
         }
-
         /// <summary>Kiểu cũ: ghi đè file gốc, có backup để khôi phục (Plague Inc).</summary>
         private InstallManifest OverwriteGameFiles(string gameFolder, string extractDir, IProgress<InstallProgress> progress)
         {
@@ -395,8 +460,11 @@ namespace VietHoaInstaller.Services
         /// tự động resume tiếp bằng HTTP Range request thay vì tải lại từ đầu. Sau khi tải xong,
         /// nếu có ExpectedHash thì xác thực tính toàn vẹn — nếu sai, xóa file lỗi và ném lỗi để tải lại từ đầu.
         /// </summary>
+        /// 
+
         private async Task DownloadWithResumeAndVerifyAsync(string url, string destinationPath, IProgress<InstallProgress> progress, CancellationToken ct)
         {
+            EnsureSafeDownloadUrl(url);
             long existingBytes = File.Exists(destinationPath) ? new FileInfo(destinationPath).Length : 0;
 
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
@@ -426,6 +494,7 @@ namespace VietHoaInstaller.Services
             var buffer = new byte[81920];
             long totalRead = existingBytes;
             int bytesRead;
+            int lastReportedPercent = -1;
 
             while ((bytesRead = await contentStream.ReadAsync(buffer, ct)) > 0)
             {
@@ -435,8 +504,12 @@ namespace VietHoaInstaller.Services
                 if (totalBytes > 0)
                 {
                     int downloadPercent = (int)(totalRead * 100 / totalBytes);
-                    int overall = (int)(downloadPercent * 0.7); // dải 0% -> 70%
-                    progress.Report(new InstallProgress(overall, $"Đang tải bản Việt hóa... {downloadPercent}%"));
+                    if (downloadPercent != lastReportedPercent)
+                    {
+                        lastReportedPercent = downloadPercent;
+                        int overall = (int)(downloadPercent * 0.7); // dải 0% -> 70%
+                        progress.Report(new InstallProgress(overall, $"Đang tải bản Việt hóa... {downloadPercent}%"));
+                    }
                 }
             }
 
@@ -461,9 +534,7 @@ namespace VietHoaInstaller.Services
             if (string.IsNullOrWhiteSpace(ExpectedHash))
                 return true;
 
-            using System.Security.Cryptography.HashAlgorithm hasher = HashAlgorithmName.ToUpperInvariant() == "MD5"
-                ? MD5.Create()
-                : SHA256.Create();
+            using var hasher = SHA256.Create();
 
             await using var stream = File.OpenRead(filePath);
             byte[] hashBytes = await hasher.ComputeHashAsync(stream, CancellationToken.None);

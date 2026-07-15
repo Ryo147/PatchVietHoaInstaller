@@ -26,13 +26,13 @@ namespace VietHoaInstaller.Models
         public string HashAlgorithmName { get; set; } = "SHA256";
 
         /// <summary>Chủ repo GitHub chứa release patch, dùng để tự động lấy link tải + hash mới nhất. Để rỗng nếu chưa muốn dùng auto-update, tool sẽ dùng PatchDownloadUrl hardcode.</summary>
-        public string GitHubOwner { get; set; } = "";
+        public string GitHubOwner { get; set; } = "Ryo147";
 
         /// <summary>Tên repo GitHub chứa release patch.</summary>
-        public string GitHubRepo { get; set; } = "";
+        public string GitHubRepo { get; set; } = "PatchVH";
 
         /// <summary>Lọc đúng file trong release nếu 1 release có nhiều asset (vd release chung cho nhiều game). Để rỗng nếu release chỉ có 1 file.</summary>
-        public string AssetNameContains { get; set; } = "";
+        public string AssetNameContains { get; set; } = "PATCHVH";
 
         /// <summary>
         /// Danh sách buildid Steam đã test/xác nhận bản Việt hóa hoạt động đúng (xem SteamLocatorService.GetInstalledBuildId).
@@ -58,7 +58,7 @@ namespace VietHoaInstaller.Models
             new GameProfile
             {
                 Name = "[BETA EARLY ACCESS] Plague Inc: Evolved",
-                PatchDownloadUrl = "https://github.com/Ryo147/PatchVH/releases/download/PatchLocalization/PatchVH_P.I_v.BETA.zip",
+                PatchDownloadUrl = "https://github.com/Ryo147/PatchVH/releases/download/PatchLocalization/PatchVH_P.I._BETA.zip",
                 RequiredGameFiles = new()
                 {
                     @"PlagueIncEvolved_Data\resources.assets",
