@@ -50,6 +50,12 @@ namespace VietHoaInstaller.Models
         /// (vd: "FluffyModManager.exe"). Để rỗng nếu không cần tự mở gì.
         /// </summary>
         public string LaunchExeRelativePath { get; set; } = "";
+        /// <summary>
+        /// True nếu bản Việt hóa game này CHƯA HOÀN THÀNH (đang phát triển/thử nghiệm).
+        /// Khi đó: ẩn/khóa nút "Cài đặt Patch", hiện trạng thái cảnh báo riêng, và chặn cài đặt
+        /// dù người dùng có lỡ chọn được thư mục hợp lệ đi nữa — tránh cài patch dở vào game thật.
+        /// </summary>
+        public bool IsComingSoon { get; set; } = false;
     }
     public static class GameCatalog
     {
@@ -75,6 +81,7 @@ namespace VietHoaInstaller.Models
             {
                 Name = "[PLACEHOLDER PROFILE] Resident Evil 2 Remake (DX11_NON-RT) w/ Fluffy Mod Manager",
                 PatchDownloadUrl = "", // TODO: đổi link thật
+                IsComingSoon = true,
                 RequiredGameFiles = new() { @"re2.exe" }, // file dùng để nhận diện đúng thư mục game
                 InstallMode = GameInstallMode.CopyToModFolder,
                 ModFolderRelativePath = "", // zip đã có sẵn "natives\..." ở gốc -> copy thẳng vào gốc thư mục game, không cộng thêm thư mục con

@@ -57,6 +57,21 @@ namespace VietHoaInstaller
                 _installer.GitHubRepo = profile.GitHubRepo;
                 _installer.AssetNameContains = profile.AssetNameContains;
 
+                if (profile.IsComingSoon)
+                {
+                    TxtGamePath.Text = "";
+                    BtnBrowse.IsEnabled = false;
+                    BtnAutoDetect.IsEnabled = false;
+                    BtnInstall.IsEnabled = false;
+                    BtnUninstall.IsEnabled = false;
+                    SetStatus("Chưa hoàn thành bản Việt hóa", "#FF5A4A");
+                    UpdateBanner(profile.BannerImagePath);
+                    AppendLog($"Đã chọn game: {profile.Name} (bản Việt hóa chưa hoàn thành, chưa thể cài đặt).");
+                    return; // dừng ở đây, không chạy các bước validate/refresh thư mục phía dưới
+                }
+
+                BtnBrowse.IsEnabled = true;
+
                 // ===== Đổi nhãn tùy theo profile có phải bundle trình khởi động (Fluffy...) hay không =====
                 LblFolderLabel.Text = profile.SkipGameFolderValidation
                     ? "Thư mục cài đặt FluffyModManager + PATCH:"
@@ -65,6 +80,13 @@ namespace VietHoaInstaller
 
                 UpdateBanner(profile.BannerImagePath);
                 AppendLog($"Đã chọn game: {profile.Name}");
+
+                // ===== XÓA đường dẫn cũ khi đổi game — bắt buộc chọn/dò lại thư mục đúng cho profile mới,
+                // tránh cài nhầm patch của game A vào thư mục của game B khi profile mới bỏ qua validate. =====
+                TxtGamePath.Text = "";
+                BtnInstall.IsEnabled = false;
+                BtnUninstall.IsEnabled = false;
+                SetStatus("Chưa chọn thư mục", "#FFB454");
 
                 if (Directory.Exists(TxtGamePath.Text))
                     RefreshStatusForFolder(TxtGamePath.Text, showErrorDialog: false);
@@ -168,6 +190,13 @@ namespace VietHoaInstaller
         // ================= CÀI ĐẶT PATCH (THẬT) =================
         private async void BtnInstall_Click(object sender, RoutedEventArgs e)
         {
+            if (CmbGame.SelectedItem is Models.GameProfile currentProfile && currentProfile.IsComingSoon)
+            {
+                MessageBox.Show("Bản Việt hóa cho game này chưa hoàn thành, chưa thể cài đặt.",
+                    "Chưa hỗ trợ", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
             string gameFolder = TxtGamePath.Text.Trim();
 
             if (!Directory.Exists(gameFolder))
