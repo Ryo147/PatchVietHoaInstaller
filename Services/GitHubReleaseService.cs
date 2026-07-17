@@ -76,7 +76,9 @@ namespace VietHoaInstaller.Services
 
         /// <summary>
         /// Trong các asset của release, tìm asset khớp tên chứa <paramref name="nameContains"/> (không phân biệt hoa thường).
-        /// Nếu để trống hoặc không tìm thấy, trả về asset đầu tiên (hầu hết release chỉ có 1 file zip).
+        /// Nếu release chỉ có đúng 1 asset, trả về asset đó luôn (không cần khớp tên). Nếu release có
+        /// NHIỀU asset (vd gộp chung nhiều game) mà không khớp tên nào, trả về null — để nơi gọi tự
+        /// rơi về link hardcode đúng game, tránh lấy nhầm file của game khác.
         /// </summary>
         public static GitHubReleaseAsset? FindAsset(GitHubRelease release, string? nameContains)
         {
@@ -91,7 +93,10 @@ namespace VietHoaInstaller.Services
                     return match;
             }
 
-            return release.Assets[0];
+            // Chỉ fallback về asset đầu tiên khi release CHỈ CÓ ĐÚNG 1 file — an toàn cho trường hợp
+            // 1 game = 1 release. Nếu release có nhiều asset (kiểu gộp N game chung 1 release) mà không
+            // khớp tên nào, TRẢ VỀ NULL thay vì đoán bừa — tránh cài nhầm patch của game khác.
+            return release.Assets.Count == 1 ? release.Assets[0] : null;
         }
 
         /// <summary>Tách phần hash hex ra khỏi chuỗi digest dạng "sha256:abcdef..." của GitHub. Trả về null nếu không có.</summary>

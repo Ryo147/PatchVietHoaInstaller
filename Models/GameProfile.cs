@@ -58,7 +58,8 @@ namespace VietHoaInstaller.Models
             new GameProfile
             {
                 Name = "Plague Inc: Evolved",
-                PatchDownloadUrl = "https://github.com/Ryo147/PatchVH/releases/download/PatchLocalization/PatchVH_P.I._BETA.zip",
+                ExpectedHash = "46ad3b2f97934edcf692a3c70bd137d298438895f196439ae0370185ae150e44",
+                PatchDownloadUrl = "https://github.com/Ryo147/PatchVH/releases/download/1/PATCHVH_P.I._RELEASE_v1.0.zip",
                 RequiredGameFiles = new()
                 {
                     @"PlagueIncEvolved_Data\resources.assets",

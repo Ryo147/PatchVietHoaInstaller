@@ -108,7 +108,11 @@ namespace VietHoaInstaller.Services
             {
                 string content = File.ReadAllText(manifestPath);
                 var match = Regex.Match(content, "\"installdir\"\\s*\"([^\"]+)\"");
-                return match.Success ? match.Groups[1].Value : null;
+                if (!match.Success) return null;
+                string installDir = match.Groups[1].Value;
+                if (string.IsNullOrWhiteSpace(installDir) || installDir.Contains("..") || Path.IsPathRooted(installDir))
+                    return null;
+                return installDir;
             }
             catch
             {

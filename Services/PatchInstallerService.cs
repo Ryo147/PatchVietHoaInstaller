@@ -62,6 +62,13 @@ namespace VietHoaInstaller.Services
             "release-assets.githubusercontent.com"
         };
 
+        private static void EnsureWithinRoot(string root, string relativePath, string context)
+        {
+            string rootFull = Path.GetFullPath(root) + Path.DirectorySeparatorChar;
+            string full = Path.GetFullPath(Path.Combine(root, relativePath));
+            if (!full.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException($"{context} chứa đường dẫn không hợp lệ: {relativePath}");
+        }
         internal static void EnsureSafeDownloadUrl(string url)
         {
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
@@ -385,6 +392,8 @@ namespace VietHoaInstaller.Services
             {
                 var manifest = LoadManifest(gameFolder)
                     ?? throw new InvalidOperationException("Không tìm thấy dữ liệu bản cài đặt để gỡ Việt hóa.");
+                if (!string.IsNullOrWhiteSpace(manifest.ModFolderRelativePath))
+                    EnsureWithinRoot(gameFolder, manifest.ModFolderRelativePath, "manifest.json (ModFolderRelativePath)");
 
                 if (manifest.InstallMode == GameInstallMode.CopyToModFolder.ToString())
                 {
@@ -396,6 +405,7 @@ namespace VietHoaInstaller.Services
                     foreach (var relativePath in manifest.RelativeFiles)
                     {
                         ct.ThrowIfCancellationRequested();
+                        EnsureWithinRoot(modFolder, relativePath, "manifest.json (RelativeFiles)");
                         string file = Path.Combine(modFolder, relativePath);
                         if (File.Exists(file)) File.Delete(file);
 
@@ -427,7 +437,7 @@ namespace VietHoaInstaller.Services
                     foreach (var relativePath in manifest.RelativeFiles)
                     {
                         ct.ThrowIfCancellationRequested();
-
+                        EnsureWithinRoot(gameFolder, relativePath, "manifest.json (RelativeFiles)");
                         string destFile = Path.Combine(gameFolder, relativePath);
                         string backupFile = Path.Combine(backupFolder, relativePath);
 
@@ -534,7 +544,9 @@ namespace VietHoaInstaller.Services
             if (string.IsNullOrWhiteSpace(ExpectedHash))
                 return true;
 
-            using var hasher = SHA256.Create();
+            using HashAlgorithm hasher = HashAlgorithmName.Equals("MD5", StringComparison.OrdinalIgnoreCase)
+                ? MD5.Create()
+                : SHA256.Create();
 
             await using var stream = File.OpenRead(filePath);
             byte[] hashBytes = await hasher.ComputeHashAsync(stream, CancellationToken.None);
