@@ -14,6 +14,9 @@ namespace VietHoaInstaller
         /// <summary>MainWindow lắng nghe để xóa nhật ký hoạt động ở Trang chủ.</summary>
         public event Action? ClearActivityLogRequested;
 
+        /// <summary>MainWindow lắng nghe để hiện thông báo nhỏ (toast) xác nhận đã lưu.</summary>
+        public event Action<string>? ToastRequested;
+
         public SettingsPage()
         {
             InitializeComponent();
@@ -44,6 +47,7 @@ namespace VietHoaInstaller
             var settings = SettingsManager.Load();
             settings.AutoCheckUpdate = ChkAutoUpdate.IsChecked == true;
             SettingsManager.Save(settings);
+            ToastRequested?.Invoke("Đã lưu cài đặt");
         }
 
         private void ChkConfirmUninstall_Changed(object sender, RoutedEventArgs e)
@@ -54,6 +58,7 @@ namespace VietHoaInstaller
             var settings = SettingsManager.Load();
             settings.ConfirmBeforeUninstall = ChkConfirmUninstall.IsChecked == true;
             SettingsManager.Save(settings);
+            ToastRequested?.Invoke("Đã lưu cài đặt");
         }
 
         private void ChkAlwaysOnTop_Changed(object sender, RoutedEventArgs e)
@@ -65,6 +70,7 @@ namespace VietHoaInstaller
             var settings = SettingsManager.Load();
             settings.AlwaysOnTop = isOn;
             SettingsManager.Save(settings);
+            ToastRequested?.Invoke("Đã lưu cài đặt");
 
             AlwaysOnTopChanged?.Invoke(isOn);
         }
@@ -77,6 +83,7 @@ namespace VietHoaInstaller
             var settings = SettingsManager.Load();
             settings.AutoOpenFolderAfterInstall = ChkAutoOpenFolder.IsChecked == true;
             SettingsManager.Save(settings);
+            ToastRequested?.Invoke("Đã lưu cài đặt");
         }
 
         private void BtnClearFolder_Click(object sender, RoutedEventArgs e)
@@ -85,6 +92,7 @@ namespace VietHoaInstaller
             settings.LastGameFolder = "";
             SettingsManager.Save(settings);
             TxtRememberedFolder.Text = "(chưa có)";
+            ToastRequested?.Invoke("Đã xóa thư mục đã ghi nhớ");
         }
 
         private void BtnClearLog_Click(object sender, RoutedEventArgs e)
@@ -94,7 +102,10 @@ namespace VietHoaInstaller
                 "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
             if (confirm == MessageBoxResult.Yes)
+            {
                 ClearActivityLogRequested?.Invoke();
+                ToastRequested?.Invoke("Đã xóa nhật ký hoạt động");
+            }
         }
     }
 }

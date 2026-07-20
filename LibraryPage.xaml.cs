@@ -20,9 +20,17 @@ namespace VietHoaInstaller
         {
             InitializeComponent();
 
-            GameList.ItemsSource = Models.GameCatalog.All
+            var items = Models.GameCatalog.All
                 .Select(profile => new GameListItem(profile))
                 .ToList();
+
+            GameList.ItemsSource = items;
+
+            int available = items.Count(i => i.CanInstall);
+            int comingSoon = items.Count - available;
+            TxtProjectCount.Text = comingSoon > 0
+                ? $"{items.Count} dự án — {available} khả dụng, {comingSoon} sắp ra mắt"
+                : $"{items.Count} dự án khả dụng";
         }
 
         private void BtnInstallGame_Click(object sender, RoutedEventArgs e)

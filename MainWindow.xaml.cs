@@ -39,6 +39,7 @@ namespace VietHoaInstaller
             _updatesPage.UpdateNowRequested += OnUpdateNowRequested;
             _settingsPage.AlwaysOnTopChanged += isOn => Topmost = isOn;
             _settingsPage.ClearActivityLogRequested += () => _homePage.ClearLog();
+            _settingsPage.ToastRequested += ShowToast;
 
             SetPage(_homePage);
             _ = CheckForAppUpdateAsync();
@@ -50,7 +51,9 @@ namespace VietHoaInstaller
             if (sender is not RadioButton rb || MainContent == null)
                 return;
 
-            UserControl? page = rb.Tag as string switch
+            string tag = rb.Tag as string ?? "";
+
+            UserControl? page = tag switch
             {
                 "Home" => _homePage,
                 "Library" => _libraryPage,
@@ -64,8 +67,38 @@ namespace VietHoaInstaller
                 SetPage(page);
 
             // Vào tab Cập nhật rồi thì coi như người dùng đã thấy thông báo -> tắt chấm đỏ
-            if (rb.Tag as string == "Updates")
+            if (tag == "Updates")
                 NavUpdateDot.Visibility = Visibility.Collapsed;
+
+            // 4 mục đầu (Trang chủ..Cài đặt) nằm trong nhóm có thanh trượt; "Giới thiệu" tách riêng dưới cùng -> ẩn thanh trượt
+            int? slotIndex = tag switch
+            {
+                "Home" => 0,
+                "Library" => 1,
+                "Updates" => 2,
+                "Settings" => 3,
+                _ => (int?)null
+            };
+            AnimateNavIndicator(slotIndex);
+        }
+
+        /// <summary>Trượt thanh nền chỉ báo mục đang chọn tới đúng vị trí nút (hoặc ẩn đi khi ở "Giới thiệu").</summary>
+        private void AnimateNavIndicator(int? slotIndex)
+        {
+            var ease = new QuadraticEase { EasingMode = EasingMode.EaseOut };
+
+            if (slotIndex.HasValue)
+            {
+                NavIndicator.BeginAnimation(UIElement.OpacityProperty,
+                    new DoubleAnimation(1, TimeSpan.FromMilliseconds(150)));
+                NavIndicatorTransform.BeginAnimation(TranslateTransform.YProperty,
+                    new DoubleAnimation(slotIndex.Value * 58, TimeSpan.FromMilliseconds(240)) { EasingFunction = ease });
+            }
+            else
+            {
+                NavIndicator.BeginAnimation(UIElement.OpacityProperty,
+                    new DoubleAnimation(0, TimeSpan.FromMilliseconds(150)));
+            }
         }
 
         /// <summary>Đổi trang kèm hiệu ứng mờ dần + trượt nhẹ từ dưới lên, thay vì đổi Content đột ngột.</summary>
@@ -89,6 +122,29 @@ namespace VietHoaInstaller
         {
             NavHome.IsChecked = true;
             _homePage.SelectGame(profile);
+        }
+
+        private CancellationTokenSource? _toastCts;
+
+        /// <summary>Hiện 1 thông báo nhỏ, thoáng qua ở đáy cửa sổ (vd "Đã lưu") rồi tự mờ dần biến mất.</summary>
+        private async void ShowToast(string message)
+        {
+            _toastCts?.Cancel();
+            var cts = new CancellationTokenSource();
+            _toastCts = cts;
+
+            TxtToast.Text = message;
+            ToastHost.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(160)));
+
+            try
+            {
+                await Task.Delay(1600, cts.Token);
+                ToastHost.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(260)));
+            }
+            catch (TaskCanceledException)
+            {
+                // Có toast mới đè lên trước khi toast cũ kịp ẩn -> bỏ qua, để toast mới tự lo việc ẩn
+            }
         }
 
         // ================= TITLE BAR =================
