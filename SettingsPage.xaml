@@ -1,0 +1,125 @@
+<UserControl x:Class="VietHoaInstaller.SettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="Arial">
+    <Grid Margin="20,20,24,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="14"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Cài đặt phần mềm"
+                   Foreground="{StaticResource TextPrimaryBrush}" FontSize="16" FontWeight="SemiBold"/>
+
+        <!-- ===== TỰ ĐỘNG KIỂM TRA CẬP NHẬT ===== -->
+        <Border Grid.Row="2" Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource CardBorderBrush}"
+                BorderThickness="1" CornerRadius="6" Padding="12,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Tự động kiểm tra cập nhật" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+                    <TextBlock Text="Kiểm tra bản mới mỗi khi mở ứng dụng" Foreground="{StaticResource TextMutedBrush}" FontSize="11" Margin="0,3,0,0"/>
+                </StackPanel>
+                <CheckBox Grid.Column="1" x:Name="ChkAutoUpdate" Style="{StaticResource ToggleSwitchStyle}"
+                          VerticalAlignment="Center" Checked="ChkAutoUpdate_Changed" Unchecked="ChkAutoUpdate_Changed"/>
+            </Grid>
+        </Border>
+
+        <!-- ===== XÁC NHẬN TRƯỚC KHI GỠ VIỆT HÓA ===== -->
+        <Border Grid.Row="4" Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource CardBorderBrush}"
+                BorderThickness="1" CornerRadius="6" Padding="12,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Xác nhận trước khi Gỡ Việt hóa" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+                    <TextBlock Text="Hiện hộp thoại hỏi lại trước khi gỡ" Foreground="{StaticResource TextMutedBrush}" FontSize="11" Margin="0,3,0,0"/>
+                </StackPanel>
+                <CheckBox Grid.Column="1" x:Name="ChkConfirmUninstall" Style="{StaticResource ToggleSwitchStyle}"
+                          VerticalAlignment="Center" Checked="ChkConfirmUninstall_Changed" Unchecked="ChkConfirmUninstall_Changed"/>
+            </Grid>
+        </Border>
+
+        <!-- ===== LUÔN HIỂN THỊ CỬA SỔ TRÊN CÙNG ===== -->
+        <Border Grid.Row="6" Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource CardBorderBrush}"
+                BorderThickness="1" CornerRadius="6" Padding="12,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Luôn hiển thị cửa sổ trên cùng" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+                    <TextBlock Text="Giữ app nổi trên các cửa sổ khác" Foreground="{StaticResource TextMutedBrush}" FontSize="11" Margin="0,3,0,0"/>
+                </StackPanel>
+                <CheckBox Grid.Column="1" x:Name="ChkAlwaysOnTop" Style="{StaticResource ToggleSwitchStyle}"
+                          VerticalAlignment="Center" Checked="ChkAlwaysOnTop_Changed" Unchecked="ChkAlwaysOnTop_Changed"/>
+            </Grid>
+        </Border>
+
+        <!-- ===== TỰ ĐỘNG MỞ THƯ MỤC SAU KHI CÀI XONG ===== -->
+        <Border Grid.Row="8" Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource CardBorderBrush}"
+                BorderThickness="1" CornerRadius="6" Padding="12,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Tự động mở thư mục game sau khi cài xong" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+                    <TextBlock Text="Mở File Explorer ngay khi cài đặt hoàn tất" Foreground="{StaticResource TextMutedBrush}" FontSize="11" Margin="0,3,0,0"/>
+                </StackPanel>
+                <CheckBox Grid.Column="1" x:Name="ChkAutoOpenFolder" Style="{StaticResource ToggleSwitchStyle}"
+                          VerticalAlignment="Center" Checked="ChkAutoOpenFolder_Changed" Unchecked="ChkAutoOpenFolder_Changed"/>
+            </Grid>
+        </Border>
+
+        <!-- ===== DỮ LIỆU ĐÃ GHI NHỚ + XÓA NHẬT KÝ ===== -->
+        <Border Grid.Row="10" Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource CardBorderBrush}"
+                BorderThickness="1" CornerRadius="6" Padding="12,10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="10"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Row="0" Grid.Column="0">
+                    <TextBlock Text="Thư mục game đã ghi nhớ" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+                    <TextBlock x:Name="TxtRememberedFolder" Text="(chưa có)" Foreground="{StaticResource TextMutedBrush}"
+                               FontSize="11" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+                <Button Grid.Row="0" Grid.Column="1" Content="Xóa" Style="{StaticResource FlatCardButtonStyle}"
+                        VerticalAlignment="Center" Click="BtnClearFolder_Click"/>
+
+                <Border Grid.Row="1" Grid.ColumnSpan="2" Height="1" Background="{StaticResource CardBorderBrush}"/>
+
+                <StackPanel Grid.Row="2" Grid.Column="0">
+                    <TextBlock Text="Nhật ký hoạt động ở Trang chủ" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+                    <TextBlock Text="Xóa toàn bộ nhật ký đã ghi trong phiên này" Foreground="{StaticResource TextMutedBrush}" FontSize="11" Margin="0,3,0,0"/>
+                </StackPanel>
+                <Button Grid.Row="2" Grid.Column="1" Content="Xóa" Style="{StaticResource FlatCardButtonStyle}"
+                        VerticalAlignment="Center" Click="BtnClearLog_Click"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

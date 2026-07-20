@@ -79,7 +79,7 @@ namespace VietHoaInstaller.Models
             },
             new GameProfile
             {
-                Name = "[PLACEHOLDER PROFILE] Resident Evil 2 Remake (DX11_NON-RT) w/ Fluffy Mod Manager",
+                Name = "Resident Evil 2 Remake (DX11_NON-RT) w/ Fluffy Mod Manager",
                 PatchDownloadUrl = "", // TODO: đổi link thật
                 IsComingSoon = true,
                 RequiredGameFiles = new() { @"re2.exe" }, // file dùng để nhận diện đúng thư mục game

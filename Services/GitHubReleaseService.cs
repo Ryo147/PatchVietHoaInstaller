@@ -30,6 +30,9 @@ namespace VietHoaInstaller.Services
         [JsonPropertyName("html_url")]
         public string HtmlUrl { get; set; } = "";
 
+        [JsonPropertyName("body")]
+        public string Body { get; set; } = "";
+
         [JsonPropertyName("assets")]
         public List<GitHubReleaseAsset> Assets { get; set; } = new();
     }

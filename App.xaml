@@ -1,8 +1,11 @@
 <Application x:Class="VietHoaInstaller.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:VietHoaInstaller.Converters"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
+
+        <conv:BannerPathToImageConverter x:Key="BannerConverter"/>
 
         <!-- ===== BẢNG MÀU CHUNG ===== -->
         <Color x:Key="BgDarkColor">#1B1F2A</Color>
@@ -317,6 +320,150 @@
                                 </Border>
                             </Popup>
                         </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ===================================================== -->
+        <!-- ============ THÊM CHO SHELL NHIỀU TRANG (v3.0.0) ======= -->
+        <!-- ===================================================== -->
+
+        <SolidColorBrush x:Key="NavRailBgBrush" Color="#161A24"/>
+        <SolidColorBrush x:Key="NavBorderBrush" Color="#2C3244"/>
+        <SolidColorBrush x:Key="NavActiveBgBrush" Color="#262A38"/>
+        <SolidColorBrush x:Key="CardBgBrush" Color="#181B26"/>
+        <SolidColorBrush x:Key="CardBorderBrush" Color="#262B3A"/>
+
+        <!-- ===== NÚT ĐIỀU HƯỚNG (thanh dọc bên trái) ===== -->
+        <!-- Nền + vạch active dùng SolidColorBrush riêng (không frozen) để có thể ColorAnimation mượt
+             khi chuyển giữa các nút, thay vì đổi màu đột ngột như trước. -->
+        <Style x:Key="NavButtonStyle" TargetType="RadioButton">
+            <Setter Property="Height" Value="58"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+            <Setter Property="FontFamily" Value="Arial"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Grid>
+                            <Border x:Name="ActiveBar" Width="3" HorizontalAlignment="Left">
+                                <Border.Background>
+                                    <SolidColorBrush x:Name="ActiveBarBrush" Color="Transparent"/>
+                                </Border.Background>
+                            </Border>
+                            <Border x:Name="Bg" Margin="3,2,4,2" CornerRadius="4">
+                                <Border.Background>
+                                    <SolidColorBrush x:Name="BgBrush" Color="Transparent"/>
+                                </Border.Background>
+                                <ContentPresenter x:Name="Content" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  RenderTransformOrigin="0.5,0.5">
+                                    <ContentPresenter.RenderTransform>
+                                        <ScaleTransform x:Name="ContentScale" ScaleX="1" ScaleY="1"/>
+                                    </ContentPresenter.RenderTransform>
+                                </ContentPresenter>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <!-- Hover: chỉ áp dụng khi nút CHƯA được chọn, tránh đè lên màu nền của nút đang active -->
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsChecked" Value="False"/>
+                                </MultiTrigger.Conditions>
+                                <MultiTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ContentScale" Storyboard.TargetProperty="ScaleX" To="1.1" Duration="0:0:0.12"/>
+                                            <DoubleAnimation Storyboard.TargetName="ContentScale" Storyboard.TargetProperty="ScaleY" To="1.1" Duration="0:0:0.12"/>
+                                            <ColorAnimation Storyboard.TargetName="BgBrush" Storyboard.TargetProperty="Color" To="#1D2230" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </MultiTrigger.EnterActions>
+                                <MultiTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ContentScale" Storyboard.TargetProperty="ScaleX" To="1.0" Duration="0:0:0.12"/>
+                                            <DoubleAnimation Storyboard.TargetName="ContentScale" Storyboard.TargetProperty="ScaleY" To="1.0" Duration="0:0:0.12"/>
+                                            <ColorAnimation Storyboard.TargetName="BgBrush" Storyboard.TargetProperty="Color" To="Transparent" Duration="0:0:0.2"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </MultiTrigger.ExitActions>
+                            </MultiTrigger>
+                            <!-- Chọn nút: vạch active + nền trượt màu mượt sang trạng thái active, và ngược lại khi rời đi -->
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ColorAnimation Storyboard.TargetName="ActiveBarBrush" Storyboard.TargetProperty="Color" To="{StaticResource AccentColor}" Duration="0:0:0.22"/>
+                                            <ColorAnimation Storyboard.TargetName="BgBrush" Storyboard.TargetProperty="Color" To="#262A38" Duration="0:0:0.22"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ColorAnimation Storyboard.TargetName="ActiveBarBrush" Storyboard.TargetProperty="Color" To="Transparent" Duration="0:0:0.22"/>
+                                            <ColorAnimation Storyboard.TargetName="BgBrush" Storyboard.TargetProperty="Color" To="Transparent" Duration="0:0:0.22"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ===== CÔNG TẮC BẬT/TẮT (dùng ở trang Cài đặt ứng dụng) ===== -->
+        <Style x:Key="ToggleSwitchStyle" TargetType="CheckBox">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Grid Width="36" Height="20">
+                            <Border x:Name="Track" CornerRadius="10" Background="#2C3244"/>
+                            <Ellipse x:Name="Thumb" Width="14" Height="14" Fill="#8B90A3"
+                                     HorizontalAlignment="Left" Margin="3,0,0,0"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
+                                <Setter TargetName="Thumb" Property="Margin" Value="0,0,3,0"/>
+                                <Setter TargetName="Thumb" Property="Fill" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ===== NÚT PHẲNG DÙNG TRONG CÁC TRANG MỚI (Thư viện / Cài đặt / Giới thiệu) ===== -->
+        <Style x:Key="FlatCardButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Background" Value="#232838"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#2C3244"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>

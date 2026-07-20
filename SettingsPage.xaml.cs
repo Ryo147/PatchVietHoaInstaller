@@ -1,0 +1,100 @@
+using System;
+using System.Windows;
+using VietHoaInstaller.Services;
+
+namespace VietHoaInstaller
+{
+    public partial class SettingsPage : System.Windows.Controls.UserControl
+    {
+        private bool _isLoading;
+
+        /// <summary>MainWindow lắng nghe để bật/tắt Topmost ngay lập tức, không cần khởi động lại app.</summary>
+        public event Action<bool>? AlwaysOnTopChanged;
+
+        /// <summary>MainWindow lắng nghe để xóa nhật ký hoạt động ở Trang chủ.</summary>
+        public event Action? ClearActivityLogRequested;
+
+        public SettingsPage()
+        {
+            InitializeComponent();
+            LoadSettings();
+        }
+
+        private void LoadSettings()
+        {
+            _isLoading = true;
+
+            var settings = SettingsManager.Load();
+            ChkAutoUpdate.IsChecked = settings.AutoCheckUpdate;
+            ChkConfirmUninstall.IsChecked = settings.ConfirmBeforeUninstall;
+            ChkAlwaysOnTop.IsChecked = settings.AlwaysOnTop;
+            ChkAutoOpenFolder.IsChecked = settings.AutoOpenFolderAfterInstall;
+            TxtRememberedFolder.Text = string.IsNullOrWhiteSpace(settings.LastGameFolder)
+                ? "(chưa có)"
+                : settings.LastGameFolder;
+
+            _isLoading = false;
+        }
+
+        private void ChkAutoUpdate_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isLoading)
+                return;
+
+            var settings = SettingsManager.Load();
+            settings.AutoCheckUpdate = ChkAutoUpdate.IsChecked == true;
+            SettingsManager.Save(settings);
+        }
+
+        private void ChkConfirmUninstall_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isLoading)
+                return;
+
+            var settings = SettingsManager.Load();
+            settings.ConfirmBeforeUninstall = ChkConfirmUninstall.IsChecked == true;
+            SettingsManager.Save(settings);
+        }
+
+        private void ChkAlwaysOnTop_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isLoading)
+                return;
+
+            bool isOn = ChkAlwaysOnTop.IsChecked == true;
+            var settings = SettingsManager.Load();
+            settings.AlwaysOnTop = isOn;
+            SettingsManager.Save(settings);
+
+            AlwaysOnTopChanged?.Invoke(isOn);
+        }
+
+        private void ChkAutoOpenFolder_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isLoading)
+                return;
+
+            var settings = SettingsManager.Load();
+            settings.AutoOpenFolderAfterInstall = ChkAutoOpenFolder.IsChecked == true;
+            SettingsManager.Save(settings);
+        }
+
+        private void BtnClearFolder_Click(object sender, RoutedEventArgs e)
+        {
+            var settings = SettingsManager.Load();
+            settings.LastGameFolder = "";
+            SettingsManager.Save(settings);
+            TxtRememberedFolder.Text = "(chưa có)";
+        }
+
+        private void BtnClearLog_Click(object sender, RoutedEventArgs e)
+        {
+            var confirm = MessageBox.Show(
+                "Xóa toàn bộ nhật ký hoạt động ở Trang chủ?",
+                "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (confirm == MessageBoxResult.Yes)
+                ClearActivityLogRequested?.Invoke();
+        }
+    }
+}

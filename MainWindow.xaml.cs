@@ -1,96 +1,94 @@
 using System;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using Microsoft.Win32;
-using VietHoaInstaller.Models;
+using System.Windows.Media.Animation;
 using VietHoaInstaller.Services;
 
 namespace VietHoaInstaller
 {
+    /// <summary>
+    /// Shell của ứng dụng (v3.0.0): chỉ còn title bar, banner cập nhật, thanh điều hướng
+    /// và vùng hiển thị trang hiện tại. Toàn bộ logic cài đặt/gỡ Việt hóa đã chuyển sang HomePage.
+    /// </summary>
     public partial class MainWindow : Window
     {
-        // TODO: tăng số này mỗi khi build bản release mới, đồng thời đặt tag GitHub release trùng số này (vd tag "v1.0.1")
-        // Đọc version thật từ .csproj (thuộc tính <Version>) thay vì hardcode 2 chỗ dễ quên đồng bộ.
         private static string AppVersion =>
             System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.0.0";
         private const string AppUpdateOwner = "Ryo147";
         private const string AppUpdateRepo = "PatchVietHoaInstaller";
 
-        private readonly PatchInstallerService _installer = new();
-        private CancellationTokenSource? _cts;
+        private readonly HomePage _homePage = new();
+        private readonly LibraryPage _libraryPage = new();
+        private readonly UpdatesPage _updatesPage = new();
+        private readonly SettingsPage _settingsPage = new();
+        private readonly AboutPage _aboutPage = new();
 
         public MainWindow()
         {
             InitializeComponent();
             RunAppVersion.Text = $"v{AppVersion}";
-            AppendLog($"Khởi động ứng dụng v{AppVersion}");
-            LoadGameCatalog();
-            LoadLastGameFolder();
+
+            Topmost = SettingsManager.Load().AlwaysOnTop;
+
+            _libraryPage.InstallRequested += OnInstallRequestedFromLibrary;
+            _homePage.ChangeGameRequested += () => NavLibrary.IsChecked = true;
+            _updatesPage.UpdateNowRequested += OnUpdateNowRequested;
+            _settingsPage.AlwaysOnTopChanged += isOn => Topmost = isOn;
+            _settingsPage.ClearActivityLogRequested += () => _homePage.ClearLog();
+
+            SetPage(_homePage);
             _ = CheckForAppUpdateAsync();
         }
 
-        private void LoadGameCatalog()
+        // ================= ĐIỀU HƯỚNG GIỮA CÁC TRANG =================
+        private void NavButton_Checked(object sender, RoutedEventArgs e)
         {
-            CmbGame.ItemsSource = Models.GameCatalog.All;
-            if (Models.GameCatalog.All.Count > 0)
-                CmbGame.SelectedIndex = 0;
+            if (sender is not RadioButton rb || MainContent == null)
+                return;
+
+            UserControl? page = rb.Tag as string switch
+            {
+                "Home" => _homePage,
+                "Library" => _libraryPage,
+                "Updates" => _updatesPage,
+                "Settings" => _settingsPage,
+                "About" => _aboutPage,
+                _ => null
+            };
+
+            if (page != null)
+                SetPage(page);
+
+            // Vào tab Cập nhật rồi thì coi như người dùng đã thấy thông báo -> tắt chấm đỏ
+            if (rb.Tag as string == "Updates")
+                NavUpdateDot.Visibility = Visibility.Collapsed;
         }
 
-        private void CmbGame_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        /// <summary>Đổi trang kèm hiệu ứng mờ dần + trượt nhẹ từ dưới lên, thay vì đổi Content đột ngột.</summary>
+        private void SetPage(UserControl page)
         {
-            if (CmbGame.SelectedItem is Models.GameProfile profile)
-            {
-                _installer.PatchDownloadUrl = profile.PatchDownloadUrl;
-                _installer.RequiredGameFiles = profile.RequiredGameFiles;
-                _installer.InstallMode = profile.InstallMode;
-                _installer.ModFolderRelativePath = profile.ModFolderRelativePath;
-                _installer.SkipGameFolderValidation = profile.SkipGameFolderValidation;
-                _installer.ProfileName = profile.Name;
-                _installer.ExpectedHash = profile.ExpectedHash;
-                _installer.HashAlgorithmName = profile.HashAlgorithmName;
-                _installer.GitHubOwner = profile.GitHubOwner;
-                _installer.GitHubRepo = profile.GitHubRepo;
-                _installer.AssetNameContains = profile.AssetNameContains;
+            MainContent.Content = page;
 
-                if (profile.IsComingSoon)
-                {
-                    TxtGamePath.Text = "";
-                    BtnBrowse.IsEnabled = false;
-                    BtnAutoDetect.IsEnabled = false;
-                    BtnInstall.IsEnabled = false;
-                    BtnUninstall.IsEnabled = false;
-                    SetStatus("Chưa hoàn thành bản Việt hóa", "#FF5A4A");
-                    UpdateBanner(profile.BannerImagePath);
-                    AppendLog($"Đã chọn game: {profile.Name} (bản Việt hóa chưa hoàn thành, chưa thể cài đặt).");
-                    return; // dừng ở đây, không chạy các bước validate/refresh thư mục phía dưới
-                }
+            var ease = new QuadraticEase { EasingMode = EasingMode.EaseOut };
 
-                BtnBrowse.IsEnabled = true;
+            MainContentTransform.Y = 10;
+            MainContent.Opacity = 0;
 
-                // ===== Đổi nhãn tùy theo profile có phải bundle trình khởi động (Fluffy...) hay không =====
-                LblFolderLabel.Text = profile.SkipGameFolderValidation
-                    ? "Thư mục cài đặt FluffyModManager + PATCH:"
-                    : "Thư mục game:";
-                BtnAutoDetect.IsEnabled = !profile.SkipGameFolderValidation;
+            MainContent.BeginAnimation(UIElement.OpacityProperty,
+                new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = ease });
+            MainContentTransform.BeginAnimation(TranslateTransform.YProperty,
+                new DoubleAnimation(10, 0, TimeSpan.FromMilliseconds(220)) { EasingFunction = ease });
+        }
 
-                UpdateBanner(profile.BannerImagePath);
-                AppendLog($"Đã chọn game: {profile.Name}");
-
-                // ===== XÓA đường dẫn cũ khi đổi game — bắt buộc chọn/dò lại thư mục đúng cho profile mới,
-                // tránh cài nhầm patch của game A vào thư mục của game B khi profile mới bỏ qua validate. =====
-                TxtGamePath.Text = "";
-                BtnInstall.IsEnabled = false;
-                BtnUninstall.IsEnabled = false;
-                SetStatus("Chưa chọn thư mục", "#FFB454");
-
-                if (Directory.Exists(TxtGamePath.Text))
-                    RefreshStatusForFolder(TxtGamePath.Text, showErrorDialog: false);
-            }
+        /// <summary>Khi bấm "Cài đặt" 1 game ở trang Thư viện: nhảy về Trang chủ và chọn sẵn game đó.</summary>
+        private void OnInstallRequestedFromLibrary(Models.GameProfile profile)
+        {
+            NavHome.IsChecked = true;
+            _homePage.SelectGame(profile);
         }
 
         // ================= TITLE BAR =================
@@ -104,515 +102,8 @@ namespace VietHoaInstaller
 
         private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
 
-        // ================= KHỞI ĐỘNG: TỰ ĐIỀN LẠI THƯ MỤC GAME LẦN TRƯỚC =================
-        private void LoadLastGameFolder()
-        {
-            var settings = SettingsManager.Load();
-
-            if (!string.IsNullOrWhiteSpace(settings.LastGameFolder) && Directory.Exists(settings.LastGameFolder))
-            {
-                TxtGamePath.Text = settings.LastGameFolder;
-                RefreshStatusForFolder(settings.LastGameFolder, showErrorDialog: false);
-            }
-            else
-            {
-                BtnInstall.IsEnabled = false;
-                BtnUninstall.IsEnabled = false;
-            }
-        }
-
-        // ================= CHỌN THƯ MỤC GAME =================
-        private void BtnBrowse_Click(object sender, RoutedEventArgs e)
-        {
-            bool isLauncherBundle = (CmbGame.SelectedItem as Models.GameProfile)?.SkipGameFolderValidation == true;
-
-            var dialog = new OpenFolderDialog
-            {
-                Title = isLauncherBundle
-                    ? "Chọn thư mục muốn cài Fluffy Mod Manager + PATCH"
-                    : "Chọn thư mục cài đặt PATCH",
-                Multiselect = false
-            };
-
-            if (Directory.Exists(TxtGamePath.Text))
-                dialog.InitialDirectory = TxtGamePath.Text;
-
-            if (dialog.ShowDialog(this) == true)
-            {
-                TxtGamePath.Text = dialog.FolderName;
-
-                var settings = SettingsManager.Load();
-                settings.LastGameFolder = dialog.FolderName;
-                SettingsManager.Save(settings);
-
-                RefreshStatusForFolder(dialog.FolderName, showErrorDialog: true);
-            }
-        }
-
-        /// <summary>Cập nhật trạng thái + bật/tắt nút dựa trên thư mục game hiện tại.</summary>
-        private void RefreshStatusForFolder(string gameFolder, bool showErrorDialog = false)
-        {
-            AppendLog($"Kiểm tra thư mục: {gameFolder}");
-
-            // 1) Đã cài Việt hóa trước đó chưa?
-            if (_installer.IsInstalled(gameFolder))
-            {
-                SetStatus("Đã cài đặt Việt hóa", "#3DDC97");
-                BtnInstall.IsEnabled = false;
-                BtnUninstall.IsEnabled = true;
-                AppendLog("-> Đã cài đặt Việt hóa từ trước.");
-                return;
-            }
-
-            // 2) Có đúng là thư mục game không?
-            var check = _installer.ValidateGameFolder(gameFolder);
-            if (!check.IsValid)
-            {
-                SetStatus("Sai thư mục game", "#FF5A4A");
-                BtnInstall.IsEnabled = false;
-                BtnUninstall.IsEnabled = false;
-                AppendLog("-> Sai thư mục game, không tìm thấy file gốc cần thiết.");
-
-                if (showErrorDialog)
-                {
-                    MessageBox.Show(check.Message, "Thư mục không hợp lệ",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-                return;
-            }
-
-            // 3) Hợp lệ và chưa cài -> sẵn sàng cài đặt
-            SetStatus("Chưa cài đặt Việt hóa", "#FFB454");
-            BtnInstall.IsEnabled = true;
-            BtnUninstall.IsEnabled = false;
-            AppendLog("-> Thư mục hợp lệ, sẵn sàng cài đặt.");
-        }
-        // ================= CÀI ĐẶT PATCH (THẬT) =================
-        private async void BtnInstall_Click(object sender, RoutedEventArgs e)
-        {
-            if (CmbGame.SelectedItem is Models.GameProfile currentProfile && currentProfile.IsComingSoon)
-            {
-                MessageBox.Show("Bản Việt hóa cho game này chưa hoàn thành, chưa thể cài đặt.",
-                    "Chưa hỗ trợ", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            string gameFolder = TxtGamePath.Text.Trim();
-
-            if (!Directory.Exists(gameFolder))
-            {
-                bool isLauncherBundle = (CmbGame.SelectedItem as Models.GameProfile)?.SkipGameFolderValidation == true;
-                MessageBox.Show(
-                    isLauncherBundle
-                        ? "Vui lòng chọn thư mục muốn cài trình khởi động trước."
-                        : "Vui lòng chọn thư mục game hợp lệ trước.",
-                    "Thiếu thông tin", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            if (_installer.IsInstalled(gameFolder))
-            {
-                MessageBox.Show("Thư mục này đã được cài Việt hóa trước đó.\nVui lòng gỡ Việt hóa trước nếu muốn cài lại.",
-                    "Đã cài đặt", MessageBoxButton.OK, MessageBoxImage.Information);
-                RefreshStatusForFolder(gameFolder);
-                return;
-            }
-
-            var folderCheck = _installer.ValidateGameFolder(gameFolder);
-            if (!folderCheck.IsValid)
-            {
-                MessageBox.Show(folderCheck.Message, "Thư mục không hợp lệ",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                RefreshStatusForFolder(gameFolder);
-                return;
-            }
-
-            if (CmbGame.SelectedItem is Models.GameProfile profile && profile.SupportedBuildIds.Count > 0)
-            {
-                string? currentBuildId = SteamLocatorService.GetInstalledBuildId(gameFolder, profile.SteamAppId);
-
-                // currentBuildId == null nghĩa là không đọc được (vd: game không cài qua Steam library chuẩn)
-                // -> không đủ dữ liệu để so sánh, bỏ qua cảnh báo thay vì báo sai.
-                if (currentBuildId != null && !profile.SupportedBuildIds.Contains(currentBuildId))
-                {
-                    var buildWarning = MessageBox.Show(
-                        $"Phiên bản game hiện tại (build {currentBuildId}) khác với bản mà nhóm dịch đã test bản Việt hóa này.\n" +
-                        "Patch có thể không hoạt động đúng hoặc gây lỗi game.\n\nBạn có muốn tiếp tục cài đặt không?",
-                        "Cảnh báo phiên bản game", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-
-                    if (buildWarning != MessageBoxResult.Yes)
-                        return;
-                }
-            }
-
-            AppendLog($"Bắt đầu cài đặt Việt hóa cho: {(CmbGame.SelectedItem as Models.GameProfile)?.Name ?? gameFolder}");
-
-            SetBusyState(true);
-            PanelProgress.Visibility = Visibility.Visible;
-            SetStatus("Đang cài đặt Việt hóa...", "#FFB454");
-
-            _cts = new CancellationTokenSource();
-            string? lastLoggedMessage = null;
-            var progress = new Progress<InstallProgress>(p =>
-            {
-                ProgressInstall.Value = p.Percent;
-                TxtPercent.Text = $"{p.Percent}%";
-                TxtProgressDetail.Text = p.Message;
-
-                if (p.Message != lastLoggedMessage)
-                {
-                    lastLoggedMessage = p.Message;
-                    AppendLog(p.Message);
-                }
-            });
-
-            try
-            {
-                await _installer.InstallAsync(gameFolder, progress, _cts.Token);
-
-                SetStatus("Đã cài đặt Việt hóa", "#3DDC97");
-                BtnUninstall.IsEnabled = true;
-                BtnInstall.IsEnabled = false;
-                AppendLog("Cài đặt Việt hóa thành công.");
-
-                // ===== Thông báo vị trí FluffyModManager.exe và hỏi có muốn chạy ngay không =====
-                if (CmbGame.SelectedItem is Models.GameProfile p && !string.IsNullOrWhiteSpace(p.LaunchExeRelativePath))
-                {
-                    string exePath = Path.Combine(gameFolder, p.ModFolderRelativePath, p.LaunchExeRelativePath);
-                    if (File.Exists(exePath))
-                    {
-                        AppendLog($"Đã cài {Path.GetFileName(exePath)} tại: {exePath}");
-
-                        var runNow = MessageBox.Show(
-                            $"Cài đặt hoàn tất!\n\n{Path.GetFileName(exePath)} đã được cài tại:\n{exePath}\n\nBạn có muốn chạy {Path.GetFileName(exePath)} ngay bây giờ không?",
-                            "Hoàn tất", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-                        if (runNow == MessageBoxResult.Yes)
-                        {
-                            try
-                            {
-                                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                                {
-                                    FileName = exePath,
-                                    WorkingDirectory = Path.GetDirectoryName(exePath),
-                                    UseShellExecute = true
-                                });
-                            }
-                            catch (Exception ex)
-                            {
-                                AppendLog($"Không thể chạy {Path.GetFileName(exePath)}: {ex.Message}");
-                            }
-                        }
-                    }
-                    else
-                    {
-                        AppendLog($"CẢNH BÁO: không tìm thấy {exePath} sau khi cài — kiểm tra lại nội dung file zip patch.");
-                    }
-                }
-
-                // Hiện "Hoàn tất" trong chốc lát rồi tự ẩn thanh tiến trình
-                await Task.Delay(800);
-                PanelProgress.Visibility = Visibility.Collapsed;
-                ProgressInstall.Value = 0;
-                TxtPercent.Text = "0%";
-            }
-            catch (OperationCanceledException)
-            {
-                SetStatus("Đã hủy cài đặt", "#FFB454");
-                AppendLog("Đã hủy cài đặt.");
-            }
-            catch (Exception ex)
-            {
-                SetStatus("Cài đặt thất bại", "#FF5A4A");
-                AppendLog($"LỖI: {ex.Message}");
-                OfferErrorReport("Cài đặt thất bại", ex);
-            }
-            finally
-            {
-                SetBusyState(false);
-                _cts?.Dispose();
-                _cts = null;
-            }
-        }
-
-        // ================= GỠ VIỆT HÓA (THẬT) =================
-        private async void BtnUninstall_Click(object sender, RoutedEventArgs e)
-        {
-            string gameFolder = TxtGamePath.Text.Trim();
-
-            var confirm = MessageBox.Show(
-                "Bạn có chắc muốn gỡ bản Việt hóa và khôi phục file gốc?",
-                "Xác nhận gỡ Việt hóa",
-                MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-            if (confirm != MessageBoxResult.Yes)
-                return;
-
-            AppendLog($"Bắt đầu gỡ Việt hóa: {gameFolder}");
-
-            SetBusyState(true);
-            PanelProgress.Visibility = Visibility.Visible;
-            SetStatus("Đang gỡ Việt hóa...", "#FFB454");
-
-            _cts = new CancellationTokenSource();
-            string? lastLoggedMessage = null;
-            var progress = new Progress<InstallProgress>(p =>
-            {
-                ProgressInstall.Value = p.Percent;
-                TxtPercent.Text = $"{p.Percent}%";
-                TxtProgressDetail.Text = p.Message;
-
-                if (p.Message != lastLoggedMessage)
-                {
-                    lastLoggedMessage = p.Message;
-                    AppendLog(p.Message);
-                }
-            });
-
-            try
-            {
-                await _installer.UninstallAsync(gameFolder, progress, _cts.Token);
-
-                SetStatus("Chưa cài đặt Việt hóa", "#FFB454");
-                BtnInstall.IsEnabled = true;
-                BtnUninstall.IsEnabled = false;
-                ProgressInstall.Value = 0;
-                TxtPercent.Text = "0%";
-                PanelProgress.Visibility = Visibility.Collapsed;
-                AppendLog("Gỡ Việt hóa thành công.");
-            }
-            catch (Exception ex)
-            {
-                SetStatus("Gỡ Việt hóa thất bại", "#FF5A4A");
-                AppendLog($"LỖI: {ex.Message}");
-                OfferErrorReport("Gỡ Việt hóa thất bại", ex);
-            }
-            finally
-            {
-                SetBusyState(false);
-                _cts?.Dispose();
-                _cts = null;
-            }
-        }
-        // ================= TỰ ĐỘNG DÒ TÌM THƯ MỤC GAME QUA STEAM =================
-        private void BtnAutoDetect_Click(object sender, RoutedEventArgs e)
-        {
-            if (CmbGame.SelectedItem is not Models.GameProfile profile)
-            {
-                MessageBox.Show("Vui lòng chọn game trước.", "Thiếu thông tin",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(profile.SteamAppId))
-            {
-                MessageBox.Show(
-                    "Game này chưa hỗ trợ tự động dò tìm, vui lòng bấm \"Chọn...\" để chọn thư mục thủ công.",
-                    "Chưa hỗ trợ", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            string? foundFolder = SteamLocatorService.FindGameInstallFolder(profile.SteamAppId);
-            if (foundFolder == null)
-            {
-                AppendLog($"Tự động dò tìm thất bại cho: {profile.Name}");
-                MessageBox.Show(
-                    "Không tìm thấy game qua Steam. Có thể bạn chưa cài Steam, chưa cài game này, cài ở ổ đĩa " +
-                    "Steam đã gỡ liên kết (offline library), hoặc đang dùng bản không qua Steam.\n" +
-                    "Vui lòng bấm \"Chọn...\" để chọn thư mục thủ công.",
-                    "Không tìm thấy",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            AppendLog($"Tự động tìm thấy thư mục: {foundFolder}");
-            TxtGamePath.Text = foundFolder;
-
-            var settings = SettingsManager.Load();
-            settings.LastGameFolder = foundFolder;
-            SettingsManager.Save(settings);
-
-            RefreshStatusForFolder(foundFolder, showErrorDialog: true);
-        }
-
-        // ================= KIỂM TRA CẬP NHẬT ỨNG DỤNG =================
-        private Services.GitHubReleaseAsset? _pendingAppUpdateAsset;
-        private string? _pendingAppUpdateHash;
-
-        private async Task CheckForAppUpdateAsync()
-        {
-            var release = await GitHubReleaseService.GetLatestReleaseAsync(AppUpdateOwner, AppUpdateRepo);
-            if (release == null || string.IsNullOrWhiteSpace(release.TagName))
-                return; // Mất mạng / chưa có release / hết rate limit -> im lặng bỏ qua, không làm phiền người dùng
-
-            if (!GitHubReleaseService.IsNewerVersion(AppVersion, release.TagName))
-                return; // Đang dùng bản mới nhất rồi
-
-            var asset = GitHubReleaseService.FindAsset(release, ".exe");
-            if (asset == null)
-                return; // Release không có file .exe đính kèm -> không tự cập nhật được, im lặng bỏ qua
-
-            _pendingAppUpdateAsset = asset;
-            _pendingAppUpdateHash = GitHubReleaseService.ExtractSha256Hex(asset.Digest);
-
-            AppendLog($"Phát hiện bản cập nhật mới: {release.TagName}");
-            RunUpdateMessage.Text = $"🔔 Đã có bản cập nhật mới ({release.TagName})!";
-            LinkUpdateDownload.NavigateUri = new Uri(release.HtmlUrl);
-            PanelUpdateBanner.Visibility = Visibility.Visible;
-        }
-
-        // ================= TỰ TẢI + TỰ CÀI BẢN CẬP NHẬT =================
-        private async void BtnUpdateNow_Click(object sender, RoutedEventArgs e)
-        {
-            if (_pendingAppUpdateAsset == null)
-                return;
-
-            var confirm = MessageBox.Show(
-                "App sẽ tự tải bản cập nhật, đóng lại và khởi động lại phiên bản mới. Tiếp tục?",
-                "Xác nhận cập nhật", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-            if (confirm != MessageBoxResult.Yes)
-                return;
-
-            BtnUpdateNow.IsEnabled = false;
-
-            var progress = new Progress<Services.AppUpdateProgress>(p =>
-            {
-                RunUpdateMessage.Text = $"🔄 {p.Message}";
-            });
-
-            try
-            {
-                string newExePath = await Services.AppUpdaterService.DownloadNewVersionAsync(
-                    _pendingAppUpdateAsset.BrowserDownloadUrl, _pendingAppUpdateHash, progress, CancellationToken.None);
-
-                RunUpdateMessage.Text = "✅ Đang khởi động lại để áp dụng bản cập nhật...";
-
-                // Lưu lại thư mục game hiện tại trước khi thoát, để mở app mới lên vẫn tự điền lại như cũ
-                var settings = SettingsManager.Load();
-                settings.LastGameFolder = TxtGamePath.Text.Trim();
-                SettingsManager.Save(settings);
-
-                Services.AppUpdaterService.LaunchUpdaterAndExit(newExePath, () => Application.Current.Shutdown());
-            }
-            catch (Exception ex)
-            {
-                BtnUpdateNow.IsEnabled = true;
-                RunUpdateMessage.Text = "🔔 Đã có bản cập nhật mới!";
-                MessageBox.Show(
-                    $"Không thể tự động cập nhật:\n\n{ex.Message}\n\nBạn có thể bấm \"Xem chi tiết\" để tải thủ công.",
-                    "Lỗi cập nhật", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
-
-        /// <summary>
-        /// Hiện lỗi cho người dùng, hỏi có muốn báo lỗi không. Nếu đồng ý, mở sẵn trang tạo Issue trên GitHub
-        /// với tiêu đề + nội dung đã điền sẵn (tên game, version app, chi tiết lỗi) để người dùng chỉ cần bấm gửi.
-        /// </summary>
-        private void OfferErrorReport(string title, Exception ex)
-        {
-            var result = MessageBox.Show(
-                $"{title}:\n\n{ex.Message}\n\nBạn có muốn báo lỗi này cho nhóm dịch không?",
-                title, MessageBoxButton.YesNo, MessageBoxImage.Error);
-
-            if (result != MessageBoxResult.Yes)
-                return;
-
-            string gameName = CmbGame.SelectedItem is Models.GameProfile profile ? profile.Name : "(chưa chọn game)";
-
-            string issueTitle = $"[Lỗi tự động] {title} - {gameName}";
-            string errorDetail = ex.ToString();
-            if (errorDetail.Length > 1500)
-                errorDetail = errorDetail[..1500] + "\n... (đã cắt bớt, xem log đầy đủ trên máy nếu cần)";
-
-            string issueBody =
-                $"**Game:** {gameName}\n" +
-                $"**Phiên bản app:** v{AppVersion}\n" +
-                $"**Thời điểm:** {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n" +
-                $"**Hệ điều hành:** {Environment.OSVersion}\n\n" +
-                $"**Chi tiết lỗi:**\n```\n{errorDetail}\n```\n\n" +
-                "**Mô tả thêm (nếu có):**\n(bạn có thể ghi thêm ở đây trước khi gửi)";
-
-            string url = "https://github.com/Ryo147/PatchVH/issues/new"
-                + $"?title={Uri.EscapeDataString(issueTitle)}"
-                + $"&body={Uri.EscapeDataString(issueBody)}";
-
-            try
-            {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch
-            {
-                // Không mở được trình duyệt (hiếm khi xảy ra) -> bỏ qua, không chặn luồng chính
-            }
-        }
-
-        // ================= HELPER =================
-
-        /// <summary>Ghi 1 dòng vào khung "Nhật ký hoạt động", kèm giờ:phút:giây, tự cuộn xuống dòng mới nhất.</summary>
-        private void AppendLog(string message)
-        {
-            TxtLog.Text += $"[{DateTime.Now:HH:mm:ss}] {message}\n";
-            LogScrollViewer.ScrollToBottom();
-        }
-
-        /// <summary>Khóa các nút thao tác trong lúc đang cài/gỡ để tránh bấm chồng lệnh.</summary>
-        private void SetBusyState(bool isBusy)
-        {
-            BtnBrowse.IsEnabled = !isBusy;
-
-            if (isBusy)
-            {
-                // Khi bắt đầu chạy, luôn tắt cả 2 nút hành động để tránh bấm chồng
-                BtnInstall.IsEnabled = false;
-                BtnUninstall.IsEnabled = false;
-            }
-        }
-
-        /// <summary>Đổi ảnh banner theo game đang chọn. Nếu thiếu đường dẫn hoặc ảnh lỗi thì giữ nguyên ảnh cũ, không crash app.</summary>
-        private void UpdateBanner(string bannerImagePath)
-        {
-            if (string.IsNullOrWhiteSpace(bannerImagePath))
-                return;
-
-            try
-            {
-                // QUAN TRỌNG: phải dùng pack URI đầy đủ ("pack://application:,,,/...") khi tạo Uri bằng code.
-                // Viết "/Assets/xxx.png" rồi UriKind.Relative sẽ bị hiểu nhầm thành đường dẫn ổ đĩa (C:\Assets\xxx.png)
-                // chứ không phải ảnh nhúng sẵn trong file .exe.
-                string relativePart = bannerImagePath.TrimStart('/');
-                var packUri = new Uri($"pack://application:,,,/{relativePart}", UriKind.Absolute);
-
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.UriSource = packUri;
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.DecodePixelWidth = 700;   // Ép decode nhỏ lại, khớp độ rộng banner thật trên UI
-                bitmap.EndInit();
-                bitmap.Freeze();                 // Cho phép GC dọn dẹp tốt hơn, tránh giữ tham chiếu thừa
-
-                BannerImageBrush.ImageSource = bitmap;
-            }
-            catch
-            {
-                // Ảnh banner bị thiếu/lỗi -> bỏ qua, giữ nguyên banner hiện tại thay vì crash app
-            }
-        }
-
-        private void SetStatus(string text, string hexColor)
-        {
-            TxtStatus.Text = text;
-            var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hexColor));
-            TxtStatus.Foreground = brush;
-            StatusDot.Fill = brush;
-        }
         private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
         {
-            // Mở liên kết bằng trình duyệt mặc định của máy tính
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
                 FileName = e.Uri.AbsoluteUri,
@@ -620,9 +111,68 @@ namespace VietHoaInstaller
             });
             e.Handled = true;
         }
-        private void TxtGamePath_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
-        {
 
+        // ================= KIỂM TRA CẬP NHẬT ỨNG DỤNG (khi mở app) =================
+        // Chỉ để quyết định có chấm đỏ trên nút "Cập nhật" hay không. Toàn bộ chi tiết (đổi nhật ký,
+        // nút tải về...) người dùng sẽ thấy khi tự bấm vào tab Cập nhật (UpdatesPage tự kiểm tra lại).
+        private async Task CheckForAppUpdateAsync()
+        {
+            var settings = SettingsManager.Load();
+            if (!settings.AutoCheckUpdate)
+                return; // Người dùng đã tắt tự động kiểm tra cập nhật ở trang Cài đặt
+
+            var release = await GitHubReleaseService.GetLatestReleaseAsync(AppUpdateOwner, AppUpdateRepo);
+            if (release == null || string.IsNullOrWhiteSpace(release.TagName))
+                return; // Mất mạng / chưa có release / hết rate limit -> im lặng bỏ qua
+
+            if (!GitHubReleaseService.IsNewerVersion(AppVersion, release.TagName))
+                return; // Đang dùng bản mới nhất rồi
+
+            NavUpdateDot.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// UpdatesPage tự kiểm tra bản mới và đã tìm sẵn asset + hash; khi người dùng bấm "Cập nhật ngay"
+        /// ở đó, nó báo về đây để thực hiện tải + tự thay thế + khởi động lại (cần quyền của cửa sổ chính).
+        /// </summary>
+        private async void OnUpdateNowRequested(Services.GitHubReleaseAsset asset, string? expectedHash)
+        {
+            var confirm = MessageBox.Show(
+                "App sẽ tự tải bản cập nhật, đóng lại và khởi động lại phiên bản mới. Tiếp tục?",
+                "Xác nhận cập nhật", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes)
+                return;
+
+            _updatesPage.SetUpdateInProgress("Đang chuẩn bị tải...");
+
+            var progress = new Progress<Services.AppUpdateProgress>(p =>
+            {
+                _updatesPage.SetUpdateInProgress(p.Message);
+            });
+
+            try
+            {
+                string newExePath = await Services.AppUpdaterService.DownloadNewVersionAsync(
+                    asset.BrowserDownloadUrl, expectedHash, progress, CancellationToken.None);
+
+                _updatesPage.SetUpdateInProgress("Đang khởi động lại để áp dụng bản cập nhật...");
+
+                // Lưu lại thư mục game hiện tại (đọc từ HomePage) trước khi thoát,
+                // để mở app mới lên vẫn tự điền lại như cũ.
+                var settings = SettingsManager.Load();
+                settings.LastGameFolder = _homePage.CurrentGameFolder;
+                SettingsManager.Save(settings);
+
+                Services.AppUpdaterService.LaunchUpdaterAndExit(newExePath, () => Application.Current.Shutdown());
+            }
+            catch (Exception ex)
+            {
+                _updatesPage.SetUpdateFailed();
+                MessageBox.Show(
+                    $"Không thể tự động cập nhật:\n\n{ex.Message}\n\nBạn có thể bấm \"Mở trang GitHub\" để tải thủ công.",
+                    "Lỗi cập nhật", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
     }
 }
