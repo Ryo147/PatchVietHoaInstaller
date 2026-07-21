@@ -32,7 +32,7 @@ namespace VietHoaInstaller.Models
         public string GitHubRepo { get; set; } = "PatchVH";
 
         /// <summary>Lọc đúng file trong release nếu 1 release có nhiều asset (vd release chung cho nhiều game). Để rỗng nếu release chỉ có 1 file.</summary>
-        public string AssetNameContains { get; set; } = "PATCHVH";
+        public string AssetNameContains { get; set; } = "";
 
         /// <summary>
         /// Danh sách buildid Steam đã test/xác nhận bản Việt hóa hoạt động đúng (xem SteamLocatorService.GetInstalledBuildId).
@@ -56,6 +56,8 @@ namespace VietHoaInstaller.Models
         /// dù người dùng có lỡ chọn được thư mục hợp lệ đi nữa — tránh cài patch dở vào game thật.
         /// </summary>
         public bool IsComingSoon { get; set; } = false;
+
+        public string? InstallNote { get; set; }
     }
     public static class GameCatalog
     {
@@ -75,12 +77,12 @@ namespace VietHoaInstaller.Models
                 SteamAppId = "246620",
                 GitHubOwner = "Ryo147",
                 GitHubRepo = "PatchVH",
-                AssetNameContains = "P.I" // TODO: đổi khớp đúng tên file asset thật trong release nếu 1 release có nhiều game
+                AssetNameContains = "P.I"
             },
             new GameProfile
             {
                 Name = "Resident Evil 2 Remake (DX11_NON-RT) w/ Fluffy Mod Manager",
-                PatchDownloadUrl = "", // TODO: đổi link thật
+                PatchDownloadUrl = "EMPTY", // TODO: đổi link thật
                 IsComingSoon = true,
                 RequiredGameFiles = new() { @"re2.exe" }, // file dùng để nhận diện đúng thư mục game
                 InstallMode = GameInstallMode.CopyToModFolder,
@@ -88,10 +90,11 @@ namespace VietHoaInstaller.Models
                 BannerImagePath = "/Assets/RE2_DX11.png", // TODO: đảm bảo file này nằm trong thư mục Assets
                 SteamAppId = "883710",
                 SkipGameFolderValidation = true,
-                LaunchExeRelativePath = "RE2R-Mod/Modmanager.exe",   // <-- thêm
+                LaunchExeRelativePath = "RE2R-Mod/Modmanager.exe",
                 GitHubOwner = "Ryo147",
                 GitHubRepo = "PatchVH",
-                AssetNameContains = "RE2R"
+                AssetNameContains = "RE2R",
+                InstallNote = "Đây là PATCH đi kèm với FluffyModManager nên bạn cần CHỌN THƯ MỤC THỦ CÔNG. Bản dịch có sử dụng phương ngữ miền Nam vào lời thoại nhân vật. Cân nhắc trước khi chơi."
             },
             // TODO: thêm game khác của nhóm, copy y hệt khối trên và đổi 3 dòng
         };

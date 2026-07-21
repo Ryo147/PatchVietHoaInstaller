@@ -562,6 +562,14 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
+        <!-- ===== STYLE THẺ CARD (Windows 11 Fluent) ===== -->
+        <Style x:Key="SettingCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource CardBgBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
     </Application.Resources>
 </Application>

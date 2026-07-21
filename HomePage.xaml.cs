@@ -99,6 +99,9 @@ namespace VietHoaInstaller
             UpdateBanner(profile.BannerImagePath);
             AppendLog($"Đã chọn game: {profile.Name}");
 
+            if (!string.IsNullOrWhiteSpace(profile.InstallNote))
+                AppendLog($"LƯU Ý: {profile.InstallNote}");
+
             // ===== XÓA đường dẫn cũ khi đổi game — bắt buộc chọn/dò lại thư mục đúng cho profile mới,
             // tránh cài nhầm patch của game A vào thư mục của game B khi profile mới bỏ qua validate. =====
             TxtGamePath.Text = "";
@@ -478,7 +481,7 @@ namespace VietHoaInstaller
 
             string gameName = _selectedProfile is Models.GameProfile profile ? profile.Name : "(chưa chọn game)";
 
-            string issueTitle = $"[Lỗi tự động] {title} - {gameName}";
+            string issueTitle = $"[BÁO LỖI TỰ ĐỘNG] {title} - {gameName}";
             string errorDetail = ex.ToString();
             if (errorDetail.Length > 1500)
                 errorDetail = errorDetail[..1500] + "\n... (đã cắt bớt, xem log đầy đủ trên máy nếu cần)";
@@ -535,6 +538,9 @@ namespace VietHoaInstaller
             if (message.Contains("thành công", StringComparison.OrdinalIgnoreCase))
                 return (Brush)FindResource("SuccessBrush");
 
+            if (message.Contains("LƯU Ý", StringComparison.OrdinalIgnoreCase))
+                return (Brush)FindResource("WarnBrush");
+            
             return (Brush)FindResource("TextMutedBrush");
         }
 
