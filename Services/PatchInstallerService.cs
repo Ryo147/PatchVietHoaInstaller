@@ -87,9 +87,6 @@ namespace VietHoaInstaller.Services
             if (string.IsNullOrWhiteSpace(gameFolder)) return false;
             if (!File.Exists(GetManifestPath(gameFolder))) return false;
 
-            // Nếu đã biết đang cài cho profile nào, và manifest cũ có ghi rõ ProfileName,
-            // chỉ coi là "đã cài" nếu đúng là bản cài của CÙNG profile này. Tránh báo nhầm
-            // "đã cài trước đó" khi 2 profile khác nhau (vd Plague Inc và Fluffy bundle) lỡ trỏ chung 1 thư mục.
             if (!string.IsNullOrWhiteSpace(ProfileName))
             {
                 var existing = LoadManifest(gameFolder);
@@ -100,14 +97,7 @@ namespace VietHoaInstaller.Services
             return true;
         }
 
-        /// <summary>
-        /// Kiểm tra thư mục được chọn có đúng là thư mục game hay không, dựa trên
-        /// danh sách <see cref="RequiredGameFiles"/>. Nếu đã cài Việt hóa trước đó
-        /// (file đã bị ghi đè) thì vẫn coi là hợp lệ, vì lúc đó file gốc đã được
-        /// backup và thay bằng file Việt hóa — không còn file gốc để so khớp.
-        /// </summary>
         public bool SkipGameFolderValidation { get; set; } = false;
-        /// <summary>Tên profile game hiện đang chọn, dùng để phân biệt các profile khác nhau lỡ dùng chung 1 thư mục.</summary>
         public string ProfileName { get; set; } = "";
         public GameFolderCheckResult ValidateGameFolder(string gameFolder)
         {
@@ -153,9 +143,6 @@ namespace VietHoaInstaller.Services
             }
         }
 
-        /// <summary>
-        /// Tải patch từ server, backup file gốc, rồi ghi đè file Việt hóa vào thư mục game.
-        /// </summary>
         public async Task InstallAsync(string gameFolder, IProgress<InstallProgress> progress, CancellationToken ct = default)
         {
             if (!Directory.Exists(gameFolder))
@@ -179,7 +166,6 @@ namespace VietHoaInstaller.Services
             bool installSucceeded = false;
             try
             {
-                // ===== BƯỚC 0: THỬ LẤY LINK + HASH PATCH MỚI NHẤT TỪ GITHUB (nếu có cấu hình repo) =====
                 string downloadUrl = PatchDownloadUrl;
                 if (!string.IsNullOrWhiteSpace(GitHubOwner) && !string.IsNullOrWhiteSpace(GitHubRepo))
                 {
@@ -197,7 +183,6 @@ namespace VietHoaInstaller.Services
                             HashAlgorithmName = "SHA256";
                         }
                     }
-                    // Không lấy được từ GitHub (mất mạng/hết rate limit) -> downloadUrl vẫn giữ nguyên PatchDownloadUrl hardcode ở trên, không chặn cài đặt.
                 }
 
                 progress.Report(new InstallProgress(0, "Đang kết nối máy chủ..."));
@@ -208,12 +193,10 @@ namespace VietHoaInstaller.Services
                 await Task.Run(() => ExtractZipWithProgress(zipPath, extractDir, progress, ct), ct);
                 progress.Report(new InstallProgress(82, "Giải nén hoàn tất."));
 
-                // ===== BƯỚC 3: ÁP DỤNG PATCH (82% - 98%) — theo đúng InstallMode =====
                 InstallManifest manifest = InstallMode == GameInstallMode.CopyToModFolder
                     ? CopyToModFolder(gameFolder, extractDir, progress)
                     : OverwriteGameFiles(gameFolder, extractDir, progress);
 
-                // ===== BƯỚC 4: LƯU MANIFEST =====
                 Directory.CreateDirectory(GetBackupFolder(gameFolder));
                 File.WriteAllText(
                     GetManifestPath(gameFolder),
@@ -224,11 +207,8 @@ namespace VietHoaInstaller.Services
             }
             finally
             {
-                // Luôn dọn thư mục giải nén tạm (không cần giữ để resume)
                 try { Directory.Delete(extractDir, recursive: true); } catch { }
 
-                // Chỉ xóa file zip đã tải khi CÀI THÀNH CÔNG. Nếu lỗi (mất mạng, hủy...),
-                // GIỮ LẠI zip dở dang để lần InstallAsync kế tiếp resume tiếp từ chỗ dang dở.
                 if (installSucceeded)
                 {
                     try { Directory.Delete(tempDir, recursive: true); } catch { }
@@ -236,11 +216,6 @@ namespace VietHoaInstaller.Services
             }
         }
 
-        /// <summary>
-        /// Giải nén zip thủ công từng entry (thay vì gọi ZipFile.ExtractToDirectory một phát),
-        /// để báo tiến trình thật theo số file đã giải nén — tránh thanh progress bị đứng im rồi nhảy khựng.
-        /// </summary>
-        /// <summary>Giới hạn tổng dung lượng sau giải nén, chặn zip-bomb (file zip nhỏ nhưng giải nén ra khổng lồ).</summary>
         private const long MaxTotalUncompressedBytes = 10L * 1024 * 1024 * 1024; // 10 GB
         private const long MaxSingleEntryUncompressedBytes = 4L * 1024 * 1024 * 1024; // 4 GB
         private const int MaxEntryCount = 50_000;
@@ -282,8 +257,6 @@ namespace VietHoaInstaller.Services
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
 
-                    // Đọc/ghi thủ công qua stream (thay vì entry.ExtractToFile) để đếm byte GIẢI NÉN THẬT,
-                    // chặn zip-bomb kiểu giả mạo metadata Length trong central directory.
                     using var entryStream = entry.Open();
                     using var outStream = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920);
 
@@ -304,7 +277,7 @@ namespace VietHoaInstaller.Services
                 progress.Report(new InstallProgress(pct, $"Đang giải nén ({done}/{total} file)..."));
             }
         }
-        /// <summary>Kiểu cũ: ghi đè file gốc, có backup để khôi phục (Plague Inc).</summary>
+
         private InstallManifest OverwriteGameFiles(string gameFolder, string extractDir, IProgress<InstallProgress> progress)
         {
             var backupFolder = GetBackupFolder(gameFolder);
@@ -346,7 +319,6 @@ namespace VietHoaInstaller.Services
             return manifest;
         }
 
-        /// <summary>Kiểu mới: chỉ copy vào thư mục mod riêng, không đụng file gốc (RE2R kiểu Fluffy Mod Manager).</summary>
         private InstallManifest CopyToModFolder(string gameFolder, string extractDir, IProgress<InstallProgress> progress)
         {
             string modFolder = Path.Combine(gameFolder, ModFolderRelativePath);
@@ -382,10 +354,6 @@ namespace VietHoaInstaller.Services
             return manifest;
         }
 
-        /// <summary>
-        /// Gỡ Việt hóa: nếu cài kiểu CopyToModFolder thì chỉ xóa file mod;
-        /// nếu cài kiểu OverwriteFiles thì khôi phục file gốc từ backup.
-        /// </summary>
         public Task UninstallAsync(string gameFolder, IProgress<InstallProgress> progress, CancellationToken ct = default)
         {
             return Task.Run(() =>
@@ -397,7 +365,6 @@ namespace VietHoaInstaller.Services
 
                 if (manifest.InstallMode == GameInstallMode.CopyToModFolder.ToString())
                 {
-                    // Kiểu mod folder: chỉ cần xóa các file đã copy, không cần khôi phục gì
                     string modFolder = Path.Combine(gameFolder, manifest.ModFolderRelativePath);
                     int total = Math.Max(manifest.RelativeFiles.Count, 1);
                     int done = 0;
@@ -416,8 +383,6 @@ namespace VietHoaInstaller.Services
 
                     try
                     {
-                        // Chỉ dọn dẹp thư mục con nếu ModFolderRelativePath không rỗng.
-                        // Nếu rỗng, modFolder chính là gốc thư mục game -> TUYỆT ĐỐI không được xóa.
                         if (!string.IsNullOrWhiteSpace(manifest.ModFolderRelativePath)
                             && Directory.Exists(modFolder)
                             && !Directory.EnumerateFileSystemEntries(modFolder).Any())
@@ -429,7 +394,6 @@ namespace VietHoaInstaller.Services
                 }
                 else
                 {
-                    // Kiểu cũ: khôi phục file gốc từ backup
                     var backupFolder = GetBackupFolder(gameFolder);
                     int total = Math.Max(manifest.RelativeFiles.Count, 1);
                     int done = 0;
@@ -465,12 +429,17 @@ namespace VietHoaInstaller.Services
             }, ct);
         }
 
-        /// <summary>
-        /// Tải file từ URL về đường dẫn cục bộ. Nếu đã có file tải dở (từ lần trước bị mất mạng),
-        /// tự động resume tiếp bằng HTTP Range request thay vì tải lại từ đầu. Sau khi tải xong,
-        /// nếu có ExpectedHash thì xác thực tính toàn vẹn — nếu sai, xóa file lỗi và ném lỗi để tải lại từ đầu.
-        /// </summary>
-        /// 
+        private static string FormatBytes(double bytes)
+        {
+            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+            int order = 0;
+            while (bytes >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                bytes = bytes / 1024;
+            }
+            return $"{bytes:0.##} {sizes[order]}";
+        }
 
         private async Task DownloadWithResumeAndVerifyAsync(string url, string destinationPath, IProgress<InstallProgress> progress, CancellationToken ct)
         {
@@ -483,7 +452,6 @@ namespace VietHoaInstaller.Services
 
             using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
-            // Server không hỗ trợ resume (trả về 200 thay vì 206 Partial Content) -> tải lại từ đầu cho an toàn
             bool serverSupportsResume = response.StatusCode == System.Net.HttpStatusCode.PartialContent;
             if (existingBytes > 0 && !serverSupportsResume)
             {
@@ -504,24 +472,51 @@ namespace VietHoaInstaller.Services
             var buffer = new byte[81920];
             long totalRead = existingBytes;
             int bytesRead;
-            int lastReportedPercent = -1;
+
+            // ===== BIẾN ĐO TỐC ĐỘ & UI =====
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            long lastSpeedTickMs = 0;
+            long lastSpeedBytes = totalRead;
+            double currentSpeed = 0;
+
+            // Cập nhật dung lượng mỗi 30ms (tạo cảm giác thời gian thực mà không giật lag UI)
+            long lastUiTickMs = 0;
 
             while ((bytesRead = await contentStream.ReadAsync(buffer, ct)) > 0)
             {
                 await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
                 totalRead += bytesRead;
 
-                if (totalBytes > 0)
+                long currentMs = stopwatch.ElapsedMilliseconds;
+
+                // 1. TÍNH TỐC ĐỘ MẠNG RIÊNG (STRICT 100ms)
+                if (currentMs - lastSpeedTickMs >= 100)
                 {
-                    int downloadPercent = (int)(totalRead * 100 / totalBytes);
-                    if (downloadPercent != lastReportedPercent)
-                    {
-                        lastReportedPercent = downloadPercent;
-                        int overall = (int)(downloadPercent * 0.7); // dải 0% -> 70%
-                        progress.Report(new InstallProgress(overall, $"Đang tải bản Việt hóa... {downloadPercent}%"));
-                    }
+                    double elapsedSec = (currentMs - lastSpeedTickMs) / 1000.0;
+                    currentSpeed = elapsedSec > 0 ? (totalRead - lastSpeedBytes) / elapsedSec : 0;
+
+                    lastSpeedTickMs = currentMs;
+                    lastSpeedBytes = totalRead;
+                }
+
+                // 2. CẬP NHẬT DUNG LƯỢNG (CURRENT/MAX) THEO THỜI GIAN THỰC (30ms)
+                if (currentMs - lastUiTickMs >= 20)
+                {
+                    lastUiTickMs = currentMs;
+
+                    int downloadPercent = totalBytes > 0 ? (int)(totalRead * 100 / totalBytes) : 0;
+                    int overall = (int)(downloadPercent * 0.7); // dải 0% -> 70%
+
+                    string downloadedStr = FormatBytes(totalRead);
+                    string totalStr = totalBytes > 0 ? FormatBytes(totalBytes) : "Unknown";
+                    string speedStr = FormatBytes(currentSpeed);
+
+                    progress.Report(new InstallProgress(overall, $"Đang tải: {downloadedStr} / {totalStr} • {speedStr}/s"));
                 }
             }
+
+            // Báo cáo lần cuối cho dung lượng chính xác tuyệt đối khi tải xong
+            progress.Report(new InstallProgress(70, $"Đang tải: {FormatBytes(totalRead)} / {FormatBytes(totalBytes)} • {FormatBytes(currentSpeed)}/s"));
 
             fileStream.Close();
 
@@ -538,7 +533,6 @@ namespace VietHoaInstaller.Services
             }
         }
 
-        /// <summary>So khớp hash (MD5/SHA-256) của file đã tải với ExpectedHash. Nếu ExpectedHash rỗng thì luôn coi là hợp lệ (bỏ qua xác thực).</summary>
         private async Task<bool> VerifyHashAsync(string filePath)
         {
             if (string.IsNullOrWhiteSpace(ExpectedHash))

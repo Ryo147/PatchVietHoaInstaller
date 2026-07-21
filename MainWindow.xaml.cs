@@ -41,6 +41,14 @@ namespace VietHoaInstaller
             _settingsPage.ToastRequested += ShowToast;
 
             SetPage(_homePage);
+
+            // FIX: NavHome.IsChecked="True" khai báo trong XAML trước ContentControl "MainContent" trong
+            // cây markup, nên sự kiện Checked của nó fire ngay trong lúc InitializeComponent() — lúc đó field
+            // MainContent CHƯA được gán -> NavButton_Checked bị "MainContent == null" chặn return sớm ->
+            // AnimateNavIndicator(0) không bao giờ chạy -> gạch chân giữ nguyên vị trí thô X=0 (lệch sát trái)
+            // thay vì nằm giữa "Trang chủ". Đặt lại vị trí tường minh ở đây, không animation, để không bị giật.
+            SetNavIndicatorPositionInstant(0);
+
             _ = CheckForAppUpdateAsync();
         }
 
@@ -85,12 +93,26 @@ namespace VietHoaInstaller
         /// <summary>Trượt gạch chân chỉ báo tới đúng tab đang chọn (mỗi tab rộng cố định 92px, gạch chân rộng 40px, canh giữa).</summary>
         private void AnimateNavIndicator(int slotIndex)
         {
-            const double slotWidth = 92;
-            double targetX = slotWidth * slotIndex + (slotWidth - NavIndicator.Width) / 2.0;
+            double targetX = GetNavIndicatorTargetX(slotIndex);
 
             var ease = new QuadraticEase { EasingMode = EasingMode.EaseOut };
             NavIndicatorTransform.BeginAnimation(TranslateTransform.XProperty,
                 new DoubleAnimation(targetX, TimeSpan.FromMilliseconds(240)) { EasingFunction = ease });
+        }
+
+        /// <summary>Đặt NGAY vị trí gạch chân chỉ báo, không animation. Dùng lúc khởi động app để tránh
+        /// gạch chân "giật" trượt từ vị trí gốc lệch trái (X=0 khai báo trong XAML) sang chỗ đúng
+        /// trước mắt người dùng — chỉ cần nó xuất hiện đúng chỗ ngay từ khung hình đầu tiên.</summary>
+        private void SetNavIndicatorPositionInstant(int slotIndex)
+        {
+            NavIndicatorTransform.BeginAnimation(TranslateTransform.XProperty, null);
+            NavIndicatorTransform.X = GetNavIndicatorTargetX(slotIndex);
+        }
+
+        private double GetNavIndicatorTargetX(int slotIndex)
+        {
+            const double slotWidth = 92;
+            return slotWidth * slotIndex + (slotWidth - NavIndicator.Width) / 2.0;
         }
 
         /// <summary>Đổi trang kèm hiệu ứng mờ dần + trượt nhẹ từ dưới lên, thay vì đổi Content đột ngột.</summary>

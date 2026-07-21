@@ -408,17 +408,62 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
+                        <!-- Track + Thumb dùng SolidColorBrush riêng (không frozen) để ColorAnimation được,
+                             và Thumb dùng TranslateTransform để trượt mượt thay vì đổi Margin/HorizontalAlignment
+                             đột ngột như trước. -->
                         <Grid Width="36" Height="20">
-                            <Border x:Name="Track" CornerRadius="10" Background="#2C3244"/>
-                            <Ellipse x:Name="Thumb" Width="14" Height="14" Fill="#8B90A3"
-                                     HorizontalAlignment="Left" Margin="3,0,0,0"/>
+                            <Border x:Name="Track" CornerRadius="10">
+                                <Border.Background>
+                                    <SolidColorBrush x:Name="TrackBrush" Color="#2C3244"/>
+                                </Border.Background>
+                            </Border>
+                            <Ellipse x:Name="Thumb" Width="14" Height="14" Margin="3,0,0,0"
+                                     HorizontalAlignment="Left" RenderTransformOrigin="0.5,0.5">
+                                <Ellipse.Fill>
+                                    <SolidColorBrush x:Name="ThumbBrush" Color="#8B90A3"/>
+                                </Ellipse.Fill>
+                                <Ellipse.RenderTransform>
+                                    <TranslateTransform x:Name="ThumbTransform" X="0"/>
+                                </Ellipse.RenderTransform>
+                            </Ellipse>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Track" Property="Background" Value="{StaticResource AccentBrush}"/>
-                                <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
-                                <Setter TargetName="Thumb" Property="Margin" Value="0,0,3,0"/>
-                                <Setter TargetName="Thumb" Property="Fill" Value="White"/>
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ColorAnimation Storyboard.TargetName="TrackBrush" Storyboard.TargetProperty="Color"
+                                                            To="{StaticResource AccentColor}" Duration="0:0:0.16"/>
+                                            <ColorAnimation Storyboard.TargetName="ThumbBrush" Storyboard.TargetProperty="Color"
+                                                            To="White" Duration="0:0:0.16"/>
+                                            <DoubleAnimation Storyboard.TargetName="ThumbTransform" Storyboard.TargetProperty="X"
+                                                             To="16" Duration="0:0:0.18">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <QuadraticEase EasingMode="EaseOut"/>
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ColorAnimation Storyboard.TargetName="TrackBrush" Storyboard.TargetProperty="Color"
+                                                            To="#2C3244" Duration="0:0:0.16"/>
+                                            <ColorAnimation Storyboard.TargetName="ThumbBrush" Storyboard.TargetProperty="Color"
+                                                            To="#8B90A3" Duration="0:0:0.16"/>
+                                            <DoubleAnimation Storyboard.TargetName="ThumbTransform" Storyboard.TargetProperty="X"
+                                                             To="0" Duration="0:0:0.18">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <QuadraticEase EasingMode="EaseOut"/>
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Thumb" Property="Opacity" Value="0.85"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -427,27 +472,67 @@
         </Style>
 
         <!-- ===== NÚT PHẲNG DÙNG TRONG CÁC TRANG MỚI (Thư viện / Cài đặt / Giới thiệu) ===== -->
+        <!-- Nền dùng SolidColorBrush riêng (không frozen) để ColorAnimation mượt lúc hover, thay vì
+             đổi Background đột ngột như trước; thêm ScaleTransform để nút hơi co lại lúc nhấn. -->
         <Style x:Key="FlatCardButtonStyle" TargetType="Button">
             <Setter Property="Height" Value="32"/>
             <Setter Property="Padding" Value="12,0"/>
             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-            <Setter Property="Background" Value="#232838"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="6">
+                        <Border x:Name="Bg" CornerRadius="6" RenderTransformOrigin="0.5,0.5">
+                            <Border.Background>
+                                <SolidColorBrush x:Name="BgBrush" Color="#232838"/>
+                            </Border.Background>
+                            <Border.RenderTransform>
+                                <ScaleTransform x:Name="BgScale" ScaleX="1" ScaleY="1"/>
+                            </Border.RenderTransform>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
                                               Margin="{TemplateBinding Padding}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#2C3244"/>
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ColorAnimation Storyboard.TargetName="BgBrush" Storyboard.TargetProperty="Color"
+                                                            To="#2C3244" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ColorAnimation Storyboard.TargetName="BgBrush" Storyboard.TargetProperty="Color"
+                                                            To="#232838" Duration="0:0:0.2"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="BgScale" Storyboard.TargetProperty="ScaleX" To="0.94" Duration="0:0:0.08"/>
+                                            <DoubleAnimation Storyboard.TargetName="BgScale" Storyboard.TargetProperty="ScaleY" To="0.94" Duration="0:0:0.08"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="BgScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.12"/>
+                                            <DoubleAnimation Storyboard.TargetName="BgScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.12"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="border" Property="Opacity" Value="0.5"/>
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.5"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
