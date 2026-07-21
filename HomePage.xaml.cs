@@ -494,7 +494,7 @@ namespace VietHoaInstaller
                 $"**Chi tiết lỗi:**\n```\n{errorDetail}\n```\n\n" +
                 "**Mô tả thêm (nếu có):**\n(bạn có thể ghi thêm ở đây trước khi gửi)";
 
-            string url = "https://github.com/Ryo147/PatchVH/issues/new"
+            string url = "https://github.com/Ryo147/PatchVietHoaInstaller/issues/new"
                 + $"?title={Uri.EscapeDataString(issueTitle)}"
                 + $"&body={Uri.EscapeDataString(issueBody)}";
 
