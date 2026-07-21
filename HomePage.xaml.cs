@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
@@ -510,11 +511,31 @@ namespace VietHoaInstaller
 
         // ================= HELPER =================
 
-        /// <summary>Ghi 1 dòng vào khung "Nhật ký hoạt động", kèm giờ:phút:giây, tự cuộn xuống dòng mới nhất.</summary>
+        /// <summary>Ghi 1 dòng vào khung "Nhật ký hoạt động", kèm giờ:phút:giây, tô màu theo mức độ, tự cuộn xuống dòng mới nhất.</summary>
         private void AppendLog(string message)
         {
-            TxtLog.Text += $"[{DateTime.Now:HH:mm:ss}] {message}\n";
+            string timestamp = $"[{DateTime.Now:HH:mm:ss}] ";
+            Brush messageBrush = ClassifyLogBrush(message);
+
+            TxtLog.Inlines.Add(new Run(timestamp) { Foreground = (Brush)FindResource("TextMutedBrush") });
+            TxtLog.Inlines.Add(new Run(message + "\n") { Foreground = messageBrush });
+
             LogScrollViewer.ScrollToBottom();
+        }
+
+        /// <summary>Đoán mức độ nghiêm trọng của 1 dòng log qua từ khóa, để tô màu cho dễ quét mắt (không đổi ý nghĩa nội dung).</summary>
+        private Brush ClassifyLogBrush(string message)
+        {
+            if (message.Contains("LỖI", StringComparison.OrdinalIgnoreCase) || message.StartsWith("Không thể", StringComparison.OrdinalIgnoreCase))
+                return (Brush)FindResource("AccentBrush");
+
+            if (message.Contains("CẢNH BÁO", StringComparison.OrdinalIgnoreCase))
+                return (Brush)FindResource("WarnBrush");
+
+            if (message.Contains("thành công", StringComparison.OrdinalIgnoreCase))
+                return (Brush)FindResource("SuccessBrush");
+
+            return (Brush)FindResource("TextMutedBrush");
         }
 
         /// <summary>Khóa các nút thao tác trong lúc đang cài/gỡ để tránh bấm chồng lệnh.</summary>
@@ -571,10 +592,6 @@ namespace VietHoaInstaller
             var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hexColor));
             TxtStatus.Foreground = brush;
             StatusDot.Fill = brush;
-
-            // Nền badge dùng cùng màu nhưng nhạt (alpha thấp) để tạo hiệu ứng "viên thuốc" thay vì chữ trần
-            var baseColor = ((SolidColorBrush)brush).Color;
-            StatusBadge.Background = new SolidColorBrush(Color.FromArgb(0x33, baseColor.R, baseColor.G, baseColor.B));
 
             // Hiệu ứng "nảy" nhẹ mỗi khi trạng thái đổi, để người dùng dễ nhận ra có thay đổi
             var bounce = new DoubleAnimationUsingKeyFrames();

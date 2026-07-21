@@ -12,23 +12,78 @@
     <Border BorderBrush="#3A3F4E" BorderThickness="1">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="34"/>
+                <RowDefinition Height="42"/>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="34"/>
             </Grid.RowDefinitions>
 
+            <!-- ============ TITLE BAR + ĐIỀU HƯỚNG (gộp chung 1 hàng, kiểu tab trình duyệt) ============ -->
             <Grid Grid.Row="0" Background="#161A24" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
-                    <Image Source="Assets/Dich2000sICON.ico" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="Phần mềm cài đặt Việt hóa"
-                               Foreground="{StaticResource TextPrimaryBrush}"
-                               FontSize="12.5" VerticalAlignment="Center"/>
-                </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
+
+                <!-- Icon app — vẫn là vùng kéo cửa sổ -->
+                <Image Grid.Column="0" Source="Assets/Dich2000sICON.ico" Width="16" Height="16"
+                       VerticalAlignment="Center" Margin="12,0,14,0"/>
+
+                <!-- Các tab điều hướng, canh giữa hàng title bar -->
+                <Grid Grid.Column="1" HorizontalAlignment="Center">
+                    <Border x:Name="NavIndicator" Width="40" Height="3" CornerRadius="2"
+                            HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                            Background="{StaticResource AccentBrush}">
+                        <Border.RenderTransform>
+                            <TranslateTransform x:Name="NavIndicatorTransform" X="0"/>
+                        </Border.RenderTransform>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="NavHome" Style="{StaticResource TopNavTabStyle}"
+                                     GroupName="Nav" IsChecked="True" Tag="Home" Checked="NavButton_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE80F;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Trang chủ" FontSize="11.5" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="NavLibrary" Style="{StaticResource TopNavTabStyle}"
+                                     GroupName="Nav" Tag="Library" Checked="NavButton_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Dự án" FontSize="11.5" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="NavUpdates" Style="{StaticResource TopNavTabStyle}"
+                                     GroupName="Nav" Tag="Updates" Checked="NavButton_Checked">
+                            <Grid>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Cập nhật" FontSize="11.5" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <Ellipse x:Name="NavUpdateDot" Width="6" Height="6" Fill="{StaticResource AccentBrush}"
+                                         Stroke="#161A24" StrokeThickness="1.5"
+                                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,10,0"
+                                         Visibility="Collapsed"/>
+                            </Grid>
+                        </RadioButton>
+                        <RadioButton x:Name="NavSettings" Style="{StaticResource TopNavTabStyle}"
+                                     GroupName="Nav" Tag="Settings" Checked="NavButton_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Cài đặt" FontSize="11.5" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="NavAbout" Style="{StaticResource TopNavTabStyle}"
+                                     GroupName="Nav" Tag="About" Checked="NavButton_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Giới thiệu" FontSize="11.5" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </RadioButton>
+                    </StackPanel>
+                </Grid>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <Button x:Name="BtnMinimize" Content="—" Style="{StaticResource TitleBarButtonStyle}"
                             Click="BtnMinimize_Click"/>
                     <Button x:Name="BtnClose" Content="✕" Style="{StaticResource CloseButtonStyle}"
@@ -36,101 +91,16 @@
                 </StackPanel>
             </Grid>
 
-            <Grid Grid.Row="1">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="76"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <Border Grid.Column="0" Background="{StaticResource NavRailBgBrush}"
-                        BorderBrush="{StaticResource NavBorderBrush}" BorderThickness="0,0,1,0">
-                    <DockPanel LastChildFill="False">
-                        <Grid DockPanel.Dock="Top" Margin="0,14,0,0">
-                            <!-- Thanh nền trượt tới vị trí nút đang chọn, thay vì đổi màu tại chỗ -->
-                            <Border x:Name="NavIndicator" Width="69" Height="54" Margin="3,2,0,0"
-                                    HorizontalAlignment="Left" VerticalAlignment="Top"
-                                    Background="{StaticResource NavActiveBgBrush}" CornerRadius="4">
-                                <Border.RenderTransform>
-                                    <TranslateTransform x:Name="NavIndicatorTransform" Y="0"/>
-                                </Border.RenderTransform>
-                            </Border>
-
-                            <StackPanel>
-                                <RadioButton x:Name="NavHome" Style="{StaticResource NavButtonStyle}"
-                                         GroupName="Nav" IsChecked="True" Tag="Home" Checked="NavButton_Checked">
-                                    <StackPanel>
-                                        <TextBlock Text="&#xE80F;" FontFamily="Segoe MDL2 Assets" FontSize="18" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="Trang chủ" FontSize="9.5" Margin="0,4,0,0" HorizontalAlignment="Center"/>
-                                    </StackPanel>
-                                </RadioButton>
-                                <RadioButton x:Name="NavLibrary" Style="{StaticResource NavButtonStyle}"
-                                         GroupName="Nav" Tag="Library" Checked="NavButton_Checked">
-                                    <StackPanel>
-                                        <TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets" FontSize="18" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="Dự án" FontSize="9.5" Margin="0,4,0,0" HorizontalAlignment="Center"/>
-                                    </StackPanel>
-                                </RadioButton>
-                                <RadioButton x:Name="NavUpdates" Style="{StaticResource NavButtonStyle}"
-                                         GroupName="Nav" Tag="Updates" Checked="NavButton_Checked">
-                                    <Grid>
-                                        <StackPanel>
-                                            <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="18" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="Cập nhật" FontSize="9.5" Margin="0,4,0,0" HorizontalAlignment="Center"/>
-                                        </StackPanel>
-                                        <Ellipse x:Name="NavUpdateDot" Width="8" Height="8" Fill="{StaticResource AccentBrush}"
-                                             Stroke="{StaticResource NavRailBgBrush}" StrokeThickness="1.5"
-                                             HorizontalAlignment="Center" VerticalAlignment="Top"
-                                             Margin="20,-2,0,0" Visibility="Collapsed"/>
-                                    </Grid>
-                                </RadioButton>
-                                <RadioButton x:Name="NavSettings" Style="{StaticResource NavButtonStyle}"
-                                         GroupName="Nav" Tag="Settings" Checked="NavButton_Checked">
-                                    <StackPanel>
-                                        <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="18" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="Cài đặt" FontSize="9.5" Margin="0,4,0,0" HorizontalAlignment="Center"/>
-                                    </StackPanel>
-                                </RadioButton>
-                            </StackPanel>
-                        </Grid>
-
-                        <RadioButton x:Name="NavAbout" DockPanel.Dock="Bottom" Style="{StaticResource NavButtonStyle}"
-                                     GroupName="Nav" Tag="About" Checked="NavButton_Checked" Margin="0,0,0,14">
-                            <StackPanel>
-                                <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="18" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Giới thiệu" FontSize="9.5" Margin="0,4,0,0" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </RadioButton>
-                    </DockPanel>
-                </Border>
-
-                <ContentControl Grid.Column="1" x:Name="MainContent" Focusable="False">
-                    <ContentControl.RenderTransform>
-                        <TranslateTransform x:Name="MainContentTransform" Y="0"/>
-                    </ContentControl.RenderTransform>
-                </ContentControl>
-            </Grid>
-
-            <Border Grid.Row="2" Background="#161A24" BorderBrush="#2C3244" BorderThickness="0,1,0,0">
-                <Grid Margin="16,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left">
-                        <Run Foreground="#FF8B90A3" FontSize="11.5" Text="Discord: "/>
-                        <Run Text=" "/>
-                        <Hyperlink NavigateUri="https://discord.gg/snadgBATJm" RequestNavigate="Hyperlink_RequestNavigate">
-                            <Run Foreground="#FFF2F3F7" FontSize="11.5" Text="Dịch 2000s"/>
-                        </Hyperlink>
-                    </TextBlock>
-                    <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right"><Run Foreground="#FF8B90A3" FontSize="11.5" Text="Dev."/><Run Text=" "/><Run Foreground="#FFF2F3F7" FontSize="11.5" Text="Claude x Nhựa Inox"/><Run Text=" "/><Run x:Name="RunAppVersion" Foreground="#FF8B90A3" FontSize="11.5" Text=""/></TextBlock>
-                </Grid>
-            </Border>
+            <!-- ============ NỘI DUNG TRANG HIỆN TẠI ============ -->
+            <ContentControl Grid.Row="1" x:Name="MainContent" Focusable="False">
+                <ContentControl.RenderTransform>
+                    <TranslateTransform x:Name="MainContentTransform" Y="0"/>
+                </ContentControl.RenderTransform>
+            </ContentControl>
 
             <!-- ===== TOAST (thông báo thoáng qua, vd "Đã lưu") ===== -->
-            <Border x:Name="ToastHost" Grid.Row="0" Grid.RowSpan="3"
-                    HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,50"
+            <Border x:Name="ToastHost" Grid.Row="0" Grid.RowSpan="2"
+                    HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,24"
                     Background="#2A2F42" BorderBrush="#3A3F4E" BorderThickness="1" CornerRadius="6"
                     Padding="14,8" Opacity="0" IsHitTestVisible="False">
                 <TextBlock x:Name="TxtToast" Text="" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12.5"/>

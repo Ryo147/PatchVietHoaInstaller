@@ -30,7 +30,6 @@ namespace VietHoaInstaller
         public MainWindow()
         {
             InitializeComponent();
-            RunAppVersion.Text = $"v{AppVersion}";
 
             Topmost = SettingsManager.Load().AlwaysOnTop;
 
@@ -70,35 +69,28 @@ namespace VietHoaInstaller
             if (tag == "Updates")
                 NavUpdateDot.Visibility = Visibility.Collapsed;
 
-            // 4 mục đầu (Trang chủ..Cài đặt) nằm trong nhóm có thanh trượt; "Giới thiệu" tách riêng dưới cùng -> ẩn thanh trượt
-            int? slotIndex = tag switch
+            // Cả 5 tab giờ nằm chung 1 hàng ngang, chia đều nhau -> chỉ cần biết thứ tự
+            int slotIndex = tag switch
             {
                 "Home" => 0,
                 "Library" => 1,
                 "Updates" => 2,
                 "Settings" => 3,
-                _ => (int?)null
+                "About" => 4,
+                _ => 0
             };
             AnimateNavIndicator(slotIndex);
         }
 
-        /// <summary>Trượt thanh nền chỉ báo mục đang chọn tới đúng vị trí nút (hoặc ẩn đi khi ở "Giới thiệu").</summary>
-        private void AnimateNavIndicator(int? slotIndex)
+        /// <summary>Trượt gạch chân chỉ báo tới đúng tab đang chọn (mỗi tab rộng cố định 92px, gạch chân rộng 40px, canh giữa).</summary>
+        private void AnimateNavIndicator(int slotIndex)
         {
-            var ease = new QuadraticEase { EasingMode = EasingMode.EaseOut };
+            const double slotWidth = 92;
+            double targetX = slotWidth * slotIndex + (slotWidth - NavIndicator.Width) / 2.0;
 
-            if (slotIndex.HasValue)
-            {
-                NavIndicator.BeginAnimation(UIElement.OpacityProperty,
-                    new DoubleAnimation(1, TimeSpan.FromMilliseconds(150)));
-                NavIndicatorTransform.BeginAnimation(TranslateTransform.YProperty,
-                    new DoubleAnimation(slotIndex.Value * 58, TimeSpan.FromMilliseconds(240)) { EasingFunction = ease });
-            }
-            else
-            {
-                NavIndicator.BeginAnimation(UIElement.OpacityProperty,
-                    new DoubleAnimation(0, TimeSpan.FromMilliseconds(150)));
-            }
+            var ease = new QuadraticEase { EasingMode = EasingMode.EaseOut };
+            NavIndicatorTransform.BeginAnimation(TranslateTransform.XProperty,
+                new DoubleAnimation(targetX, TimeSpan.FromMilliseconds(240)) { EasingFunction = ease });
         }
 
         /// <summary>Đổi trang kèm hiệu ứng mờ dần + trượt nhẹ từ dưới lên, thay vì đổi Content đột ngột.</summary>
@@ -157,16 +149,6 @@ namespace VietHoaInstaller
         private void BtnMinimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
         private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
-
-        private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
-        {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = e.Uri.AbsoluteUri,
-                UseShellExecute = true
-            });
-            e.Handled = true;
-        }
 
         // ================= KIỂM TRA CẬP NHẬT ỨNG DỤNG (khi mở app) =================
         // Chỉ để quyết định có chấm đỏ trên nút "Cập nhật" hay không. Toàn bộ chi tiết (đổi nhật ký,

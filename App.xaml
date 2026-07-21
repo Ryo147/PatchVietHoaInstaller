@@ -30,6 +30,16 @@
             <GradientStop Color="{StaticResource AccentColor2}" Offset="1"/>
         </LinearGradientBrush>
 
+        <!-- ===== ĐƯỜNG KẺ MẢNH (dùng để phân tách các phần thay vì đóng khung) ===== -->
+        <SolidColorBrush x:Key="DividerBrush" Color="#2C3244"/>
+
+        <!-- ===== NHÃN TIÊU ĐỀ NHÓM (chữ hoa nhỏ, xám) ===== -->
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
         <!-- ===== NÚT TITLE BAR (thu nhỏ / đóng) ===== -->
         <Style x:Key="TitleBarButtonStyle" TargetType="Button">
             <Setter Property="Width" Value="42"/>
@@ -87,7 +97,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="1">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="8">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -123,7 +133,7 @@
                         <Border x:Name="border" Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="1">
+                                CornerRadius="8">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -157,7 +167,7 @@
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="1">
+                                CornerRadius="8">
                             <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -177,7 +187,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="1">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="8">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -339,33 +349,25 @@
         <!-- Nền + vạch active dùng SolidColorBrush riêng (không frozen) để có thể ColorAnimation mượt
              khi chuyển giữa các nút, thay vì đổi màu đột ngột như trước. -->
         <Style x:Key="NavButtonStyle" TargetType="RadioButton">
-            <Setter Property="Height" Value="58"/>
             <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
             <Setter Property="FontFamily" Value="Arial"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Grid>
-                            <Border x:Name="ActiveBar" Width="3" HorizontalAlignment="Left">
-                                <Border.Background>
-                                    <SolidColorBrush x:Name="ActiveBarBrush" Color="Transparent"/>
-                                </Border.Background>
-                            </Border>
-                            <Border x:Name="Bg" Margin="3,2,4,2" CornerRadius="4">
-                                <Border.Background>
-                                    <SolidColorBrush x:Name="BgBrush" Color="Transparent"/>
-                                </Border.Background>
-                                <ContentPresenter x:Name="Content" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                  RenderTransformOrigin="0.5,0.5">
-                                    <ContentPresenter.RenderTransform>
-                                        <ScaleTransform x:Name="ContentScale" ScaleX="1" ScaleY="1"/>
-                                    </ContentPresenter.RenderTransform>
-                                </ContentPresenter>
-                            </Border>
-                        </Grid>
+                        <Border x:Name="Bg" Margin="4,4,4,4" CornerRadius="6">
+                            <Border.Background>
+                                <SolidColorBrush x:Name="BgBrush" Color="Transparent"/>
+                            </Border.Background>
+                            <ContentPresenter x:Name="Content" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              RenderTransformOrigin="0.5,0.5">
+                                <ContentPresenter.RenderTransform>
+                                    <ScaleTransform x:Name="ContentScale" ScaleX="1" ScaleY="1"/>
+                                </ContentPresenter.RenderTransform>
+                            </ContentPresenter>
+                        </Border>
                         <ControlTemplate.Triggers>
-                            <!-- Hover: chỉ áp dụng khi nút CHƯA được chọn, tránh đè lên màu nền của nút đang active -->
+                            <!-- Hover: chỉ áp dụng khi nút CHƯA được chọn, tránh đè lên màu của nút đang active -->
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>
                                     <Condition Property="IsMouseOver" Value="True"/>
@@ -390,23 +392,9 @@
                                     </BeginStoryboard>
                                 </MultiTrigger.ExitActions>
                             </MultiTrigger>
-                            <!-- Chọn nút: chỉ đổi vạch active + màu chữ — phần nền đã do thanh trượt NavIndicator đảm nhiệm -->
+                            <!-- Chọn nút: chỉ đổi màu chữ — thanh gạch chân trượt (NavIndicator) đã báo hiệu mục đang chọn -->
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-                                <Trigger.EnterActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <ColorAnimation Storyboard.TargetName="ActiveBarBrush" Storyboard.TargetProperty="Color" To="{StaticResource AccentColor}" Duration="0:0:0.22"/>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </Trigger.EnterActions>
-                                <Trigger.ExitActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <ColorAnimation Storyboard.TargetName="ActiveBarBrush" Storyboard.TargetProperty="Color" To="Transparent" Duration="0:0:0.22"/>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </Trigger.ExitActions>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -498,6 +486,78 @@
                                 </Track.Thumb>
                             </Track>
                         </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ===== TAB NGANG TRÊN TITLE BAR (icon + chữ nằm cùng 1 hàng, gọn) ===== -->
+        <Style x:Key="TopNavTabStyle" TargetType="RadioButton">
+            <Setter Property="Width" Value="92"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+            <Setter Property="FontFamily" Value="Arial"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bg" CornerRadius="6">
+                            <Border.Background>
+                                <SolidColorBrush x:Name="BgBrush" Color="Transparent"/>
+                            </Border.Background>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsChecked" Value="False"/>
+                                </MultiTrigger.Conditions>
+                                <MultiTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ColorAnimation Storyboard.TargetName="BgBrush" Storyboard.TargetProperty="Color" To="#1D2230" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </MultiTrigger.EnterActions>
+                                <MultiTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ColorAnimation Storyboard.TargetName="BgBrush" Storyboard.TargetProperty="Color" To="Transparent" Duration="0:0:0.2"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </MultiTrigger.ExitActions>
+                            </MultiTrigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ===== NÚT DẠNG LINK (hành động phụ, không cần nổi bật như nút chính) ===== -->
+        <Style x:Key="LinkButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <TextBlock x:Name="Txt" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                   TextDecorations="{x:Null}" HorizontalAlignment="Center"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Txt" Property="TextDecorations" Value="Underline"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>

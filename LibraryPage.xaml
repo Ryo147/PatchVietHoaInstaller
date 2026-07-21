@@ -5,7 +5,8 @@
     <Grid Margin="20,20,24,16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="14"/>
+            <RowDefinition Height="18"/>
+            <RowDefinition Height="1"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -15,12 +16,14 @@
             <TextBlock x:Name="TxtProjectCount" Foreground="{StaticResource TextMutedBrush}" FontSize="11.5" Margin="0,3,0,0"/>
         </StackPanel>
 
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+        <Border Grid.Row="2" Background="{StaticResource DividerBrush}"/>
+
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
             <ItemsControl x:Name="GameList">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border x:Name="Card" Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource CardBorderBrush}"
-                                BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,8">
+                        <!-- Hàng phẳng: không viền, không nền, không bóng — chỉ 1 đường kẻ mảnh phía dưới ngăn cách -->
+                        <Border x:Name="Row" Background="Transparent" Padding="0,12">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -33,9 +36,8 @@
                                 </Grid.ColumnDefinitions>
 
                                 <!-- Ảnh bìa -->
-                                <Border Grid.Column="0" Width="56" Height="56" CornerRadius="7" Background="#2A2F42"
-                                        BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1">
-                                    <Rectangle RadiusX="6" RadiusY="6">
+                                <Border Grid.Column="0" Width="52" Height="52" CornerRadius="6" Background="#2A2F42">
+                                    <Rectangle RadiusX="5" RadiusY="5">
                                         <Rectangle.Fill>
                                             <ImageBrush ImageSource="{Binding BannerImagePath, Converter={StaticResource BannerConverter}}"
                                                         Stretch="UniformToFill"/>
@@ -56,23 +58,24 @@
                                 </StackPanel>
 
                                 <!-- Nhãn Khả dụng / Sắp ra mắt -->
-                                <Border Grid.Column="4" Background="{Binding BadgeBackground}" CornerRadius="5"
-                                        Padding="9,3" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding BadgeText}" Foreground="{Binding BadgeForeground}"
-                                               FontSize="10.5" FontWeight="SemiBold"/>
-                                </Border>
+                                <TextBlock Grid.Column="4" Text="{Binding BadgeText}" Foreground="{Binding StatusBrush}"
+                                           FontSize="10.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
 
                                 <!-- Nút cài đặt -->
                                 <Button Grid.Column="6" Content="Cài đặt" Style="{StaticResource FlatCardButtonStyle}"
                                         HorizontalAlignment="Stretch" VerticalAlignment="Center"
                                         IsEnabled="{Binding CanInstall}"
                                         Click="BtnInstallGame_Click" Tag="{Binding Profile}"/>
+
+                                <!-- Đường kẻ phân dòng -->
+                                <Border Grid.ColumnSpan="7" Height="1" Background="{StaticResource DividerBrush}"
+                                        VerticalAlignment="Bottom" Margin="0,0,0,-12"/>
                             </Grid>
                         </Border>
                         <DataTemplate.Triggers>
-                            <!-- Nhẹ nhàng làm nổi bật thẻ khi rê chuột qua, giúp phân biệt rõ từng dòng -->
-                            <Trigger SourceName="Card" Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Card" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                            <!-- Rê chuột: chỉ tô nền rất nhạt, không viền không đổ bóng -->
+                            <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Row" Property="Background" Value="#12FFFFFF"/>
                             </Trigger>
                         </DataTemplate.Triggers>
                     </DataTemplate>

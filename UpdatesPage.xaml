@@ -5,54 +5,50 @@
     <Grid Margin="20,20,24,16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="18"/>
+            <RowDefinition Height="1"/>
+            <RowDefinition Height="18"/>
+            <RowDefinition Height="Auto"/>
+            <!-- Phiên bản hiện tại -->
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="Auto"/>
+            <!-- Trạng thái -->
             <RowDefinition Height="14"/>
+            <RowDefinition Height="Auto"/>
+            <!-- Changelog + hành động -->
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0" Text="Cập nhật phần mềm"
                    Foreground="{StaticResource TextPrimaryBrush}" FontSize="16" FontWeight="SemiBold"/>
 
-        <Border Grid.Row="2" Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource CardBorderBrush}"
-                BorderThickness="1" CornerRadius="6" Padding="14">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="10"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="10"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+        <Border Grid.Row="2" Height="1" Background="{StaticResource DividerBrush}"/>
 
-                <!-- Phiên bản hiện tại -->
-                <TextBlock Grid.Row="0" x:Name="TxtCurrentVersion" Foreground="{StaticResource TextMutedBrush}" FontSize="12"/>
+        <TextBlock Grid.Row="4" x:Name="TxtCurrentVersion" Foreground="{StaticResource TextMutedBrush}" FontSize="12"/>
 
-                <!-- Trạng thái: đang kiểm tra / mới nhất / có bản mới -->
-                <StackPanel Grid.Row="2" Orientation="Horizontal">
-                    <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource TextMutedBrush}"
-                             Margin="0,0,7,0" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="TxtLatestStatus" Text="Đang kiểm tra bản cập nhật..."
-                               Foreground="{StaticResource TextPrimaryBrush}" FontSize="13" FontWeight="SemiBold"
-                               VerticalAlignment="Center"/>
-                </StackPanel>
+        <StackPanel Grid.Row="6" Orientation="Horizontal">
+            <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource TextMutedBrush}"
+                     Margin="0,0,7,0" VerticalAlignment="Center"/>
+            <TextBlock x:Name="TxtLatestStatus" Text="Đang kiểm tra bản cập nhật..."
+                       Foreground="{StaticResource TextPrimaryBrush}" FontSize="13" FontWeight="SemiBold"
+                       VerticalAlignment="Center"/>
+        </StackPanel>
 
-                <!-- Ghi chú ngắn gọn (nếu nhóm dịch có ghi) + hành động -->
-                <StackPanel Grid.Row="4">
-                    <TextBlock x:Name="TxtChangelog" Foreground="{StaticResource TextMutedBrush}"
-                               FontSize="12" TextWrapping="Wrap" Text="" Visibility="Collapsed" MaxHeight="90"/>
+        <StackPanel Grid.Row="8">
+            <TextBlock x:Name="TxtChangelog" Foreground="{StaticResource TextMutedBrush}"
+                       FontSize="12" TextWrapping="Wrap" Text="" Visibility="Collapsed" MaxHeight="90"/>
 
-                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                        <Button x:Name="BtnUpdateNow" Content="Cập nhật ngay"
-                                Style="{StaticResource UpdateButtonStyle}" Click="BtnUpdateNow_Click"
-                                Visibility="Collapsed"/>
-                        <TextBlock x:Name="TxtOpenReleaseLink" Margin="12,0,0,0" FontSize="12"
-                                   VerticalAlignment="Center" Visibility="Collapsed">
-                            <Hyperlink x:Name="LinkOpenRelease" RequestNavigate="Hyperlink_RequestNavigate">
-                                <Run Text="Mở trên GitHub"/>
-                            </Hyperlink>
-                        </TextBlock>
-                    </StackPanel>
-                </StackPanel>
-            </Grid>
-        </Border>
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <Button x:Name="BtnUpdateNow" Content="Cập nhật ngay"
+                        Style="{StaticResource UpdateButtonStyle}" Click="BtnUpdateNow_Click"
+                        Visibility="Collapsed"/>
+                <TextBlock x:Name="TxtOpenReleaseLink" Margin="12,0,0,0" FontSize="12"
+                           VerticalAlignment="Center" Visibility="Collapsed">
+                    <Hyperlink x:Name="LinkOpenRelease" RequestNavigate="Hyperlink_RequestNavigate">
+                        <Run Text="Mở trên GitHub"/>
+                    </Hyperlink>
+                </TextBlock>
+            </StackPanel>
+        </StackPanel>
     </Grid>
 </UserControl>
