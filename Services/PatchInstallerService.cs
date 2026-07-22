@@ -450,7 +450,23 @@ namespace VietHoaInstaller.Services
             if (existingBytes > 0)
                 request.Headers.Range = new RangeHeaderValue(existingBytes, null);
 
-            using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+            var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+
+            // Server trả 416 (Range Not Satisfiable) khi file dở dang cũ (existingBytes) không còn khớp
+            // với dung lượng thật trên server nữa — ví dụ file .zip trên GitHub đã bị thay bằng bản khác,
+            // hoặc file cũ đã đủ/lớn hơn dung lượng mới. Trường hợp này: xóa file dở dang và tải lại từ đầu
+            // thay vì để app crash.
+            if (response.StatusCode == System.Net.HttpStatusCode.RequestedRangeNotSatisfiable)
+            {
+                response.Dispose();
+                try { File.Delete(destinationPath); } catch { }
+                existingBytes = 0;
+
+                using var freshRequest = new HttpRequestMessage(HttpMethod.Get, url);
+                response = await _http.SendAsync(freshRequest, HttpCompletionOption.ResponseHeadersRead, ct);
+            }
+
+            using var _responseDisposer = response;
 
             bool serverSupportsResume = response.StatusCode == System.Net.HttpStatusCode.PartialContent;
             if (existingBytes > 0 && !serverSupportsResume)
