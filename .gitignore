@@ -5,3 +5,10 @@
 /obj
 /.vs
 /bin/Debug/net10.0-windows/win-x64
+/Properties/PublishProfiles
+/Properties/PublishProfiles
+/Properties/PublishProfiles
+*.user
+/Properties/PublishProfiles/FolderProfile.pubxml
+/bin/Release/net10.0-windows/win-x64
+/.gitignore
