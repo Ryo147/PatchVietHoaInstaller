@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace VietHoaInstaller.Models
 {
     /// <summary>
@@ -19,5 +21,12 @@ namespace VietHoaInstaller.Models
 
         /// <summary>Tự mở File Explorer tại thư mục game ngay khi cài đặt Việt hóa hoàn tất.</summary>
         public bool AutoOpenFolderAfterInstall { get; set; } = false;
+
+        public bool AutoCheckPatchUpdate { get; set; } = true;
+        public int PatchCheckIntervalMinutes { get; set; } = 60;
+        public bool MinimizeToTrayOnClose { get; set; } = true;
+
+        /// <summary>Version Patch mới nhất ĐÃ THÔNG BÁO cho từng game (key = GameProfile.Name) — tránh báo lặp.</summary>
+        public Dictionary<string, string> LastNotifiedPatchVersions { get; set; } = new();
     }
 }

@@ -6,6 +6,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Linq;
+using System.ComponentModel;
 using VietHoaInstaller.Services;
 
 namespace VietHoaInstaller
@@ -26,6 +28,9 @@ namespace VietHoaInstaller
         private readonly UpdatesPage _updatesPage = new();
         private readonly SettingsPage _settingsPage = new();
         private readonly AboutPage _aboutPage = new();
+        private System.Windows.Forms.NotifyIcon? _trayIcon;
+        private System.Windows.Threading.DispatcherTimer? _patchCheckTimer;
+        private bool _isExitingForReal = false;
 
         public MainWindow()
         {
@@ -48,10 +53,97 @@ namespace VietHoaInstaller
             // AnimateNavIndicator(0) không bao giờ chạy -> gạch chân giữ nguyên vị trí thô X=0 (lệch sát trái)
             // thay vì nằm giữa "Trang chủ". Đặt lại vị trí tường minh ở đây, không animation, để không bị giật.
             SetNavIndicatorPositionInstant(0);
-
+            InitializeTrayIcon();
+            _ = CheckForPatchUpdatesAsync(showBalloonIfFound: true);
+            StartPatchUpdateTimer();
             _ = CheckForAppUpdateAsync();
         }
 
+        private void InitializeTrayIcon()
+        {
+            var iconStream = System.Windows.Application.GetResourceStream(
+                new Uri("pack://application:,,,/Assets/Dich2000sICON.ico"))?.Stream;
+
+            _trayIcon = new System.Windows.Forms.NotifyIcon
+            {
+                Icon = iconStream != null ? new System.Drawing.Icon(iconStream) : System.Drawing.SystemIcons.Application,
+                Visible = true,
+                Text = "PatchVietHoaInstaller"
+            };
+
+            var menu = new System.Windows.Forms.ContextMenuStrip();
+            menu.Items.Add("Mở ứng dụng", null, (_, _) => { Show(); WindowState = WindowState.Normal; Activate(); });
+            menu.Items.Add("Kiểm tra bản Patch mới ngay", null, async (_, _) =>
+                await CheckForPatchUpdatesAsync(showBalloonIfFound: true, forceToastIfNone: true));
+            menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
+            menu.Items.Add("Thoát", null, (_, _) => { _isExitingForReal = true; System.Windows.Application.Current.Shutdown(); });
+            _trayIcon.ContextMenuStrip = menu;
+            _trayIcon.DoubleClick += (_, _) => { Show(); WindowState = WindowState.Normal; Activate(); };
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            var settings = SettingsManager.Load();
+            if (!_isExitingForReal && settings.MinimizeToTrayOnClose)
+            {
+                e.Cancel = true;
+                Hide();
+                return;
+            }
+
+            _trayIcon?.Dispose();
+            _patchCheckTimer?.Stop();
+            base.OnClosing(e);
+        }
+
+        private void StartPatchUpdateTimer()
+        {
+            var settings = SettingsManager.Load();
+            if (!settings.AutoCheckPatchUpdate) return;
+
+            _patchCheckTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                // Chặn dưới 15 phút để tránh spam GitHub API (giới hạn 60 request/giờ không token)
+                Interval = TimeSpan.FromMinutes(Math.Max(15, settings.PatchCheckIntervalMinutes))
+            };
+            _patchCheckTimer.Tick += async (_, _) => await CheckForPatchUpdatesAsync(showBalloonIfFound: true);
+            _patchCheckTimer.Start();
+        }
+
+        private async Task CheckForPatchUpdatesAsync(bool showBalloonIfFound, bool forceToastIfNone = false)
+        {
+            var settings = SettingsManager.Load();
+            if (!settings.AutoCheckPatchUpdate && !forceToastIfNone) return;
+
+            var updates = await Services.PatchUpdateCheckerService.CheckAllAsync(Models.GameCatalog.All);
+
+            var freshUpdates = updates.Where(u =>
+                !settings.LastNotifiedPatchVersions.TryGetValue(u.Profile.Name, out var notified) ||
+                notified != u.NewVersion).ToList();
+
+            if (freshUpdates.Count > 0)
+            {
+                NavUpdateDot.Visibility = Visibility.Visible; // tận dụng chấm đỏ có sẵn ở nút "Cập nhật"
+
+                foreach (var u in freshUpdates)
+                    settings.LastNotifiedPatchVersions[u.Profile.Name] = u.NewVersion;
+                SettingsManager.Save(settings);
+
+                if (showBalloonIfFound && _trayIcon != null)
+                {
+                    string names = string.Join(", ", freshUpdates.Select(u => $"{u.Profile.Name} (v{u.NewVersion})"));
+                    _trayIcon.BalloonTipTitle = "Có bản Patch Việt Hóa mới";
+                    _trayIcon.BalloonTipText = $"Đã có bản cập nhật cho: {names}. Mở app để tải về.";
+                    _trayIcon.ShowBalloonTip(6000);
+                }
+            }
+            else if (forceToastIfNone && _trayIcon != null)
+            {
+                _trayIcon.BalloonTipTitle = "Kiểm tra bản Patch";
+                _trayIcon.BalloonTipText = "Chưa có bản Patch mới nào.";
+                _trayIcon.ShowBalloonTip(4000);
+            }
+        }
         // ================= ĐIỀU HƯỚNG GIỮA CÁC TRANG =================
         private void NavButton_Checked(object sender, RoutedEventArgs e)
         {

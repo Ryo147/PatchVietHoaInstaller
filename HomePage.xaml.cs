@@ -50,11 +50,13 @@ namespace VietHoaInstaller
             AppendLog("Đã xóa nhật ký hoạt động.");
         }
 
+
         private void LoadDefaultGame()
         {
             if (Models.GameCatalog.All.Count > 0)
                 ApplySelectedProfile(Models.GameCatalog.All[0]);
         }
+
 
         private void BtnChangeGame_Click(object sender, RoutedEventArgs e) => ChangeGameRequested?.Invoke();
 
@@ -75,6 +77,17 @@ namespace VietHoaInstaller
             _installer.GitHubRepo = profile.GitHubRepo;
             _installer.AssetNameContains = profile.AssetNameContains;
 
+            if (string.IsNullOrWhiteSpace(profile.ApplicableGameVersion))
+            {
+                TxtApplicableVersion.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                TxtApplicableVersion.Text = $"Áp dụng cho: {profile.ApplicableGameVersion}";
+                TxtApplicableVersion.Visibility = Visibility.Visible;
+            }
+
+            _installer.PatchDownloadUrl = profile.PatchDownloadUrl;
             if (profile.IsComingSoon)
             {
                 TxtGamePath.Text = "";

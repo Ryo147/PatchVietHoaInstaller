@@ -9,7 +9,7 @@
 		<RootNamespace>PatchVietHoaInstaller</RootNamespace>
 
 		<!-- Nguồn duy nhất khai báo version của app. Mỗi lần release, chỉ cần sửa số này ở đây -->
-		<Version>3.0.1</Version>
+		<Version>3.1.0</Version>
 
 		<!-- Prevent duplicate assembly attributes -->
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
@@ -32,6 +32,9 @@
 		<EventSourceSupport>false</EventSourceSupport>
 		<HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
 		<UseRidGraph>false</UseRidGraph>
+
+		<UseWPF>true</UseWPF>
+		<UseWindowsForms>true</UseWindowsForms>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace VietHoaInstaller.Services
 {
@@ -127,6 +128,16 @@ namespace VietHoaInstaller.Services
 
             // Không parse được dạng Version chuẩn -> so sánh chuỗi thô, khác nhau thì coi là có bản mới
             return !string.Equals(Clean(currentVersion), Clean(latestTag), StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Tách số version ra khỏi tên file asset theo quy ước "..._v{version}.zip", vd:
+        /// "PATCHVH_P.I._v1.1.zip" -> "1.1". Trả về null nếu tên file không khớp quy ước.
+        /// </summary>
+        public static string? ExtractVersionFromAssetName(string assetName)
+        {
+            var match = Regex.Match(assetName, @"_v(\d+(?:\.\d+){1,3})(?=\.[a-zA-Z0-9]+$)", RegexOptions.IgnoreCase);
+            return match.Success ? match.Groups[1].Value : null;
         }
     }
 }

@@ -57,6 +57,20 @@ namespace VietHoaInstaller.Models
         /// </summary>
         public bool IsComingSoon { get; set; } = false;
 
+        /// <summary>
+        /// Version hiện tại của bản Patch (KHÔNG phải version app). Cập nhật số này mỗi khi ra bản patch
+        /// mới cho game này — làm song song với cập nhật ExpectedHash. Dùng để so sánh với version tách
+        /// được từ tên asset mới nhất trên GitHub (PatchUpdateCheckerService). Định dạng: "1.0", "1.1"...
+        /// </summary>
+        public string KnownPatchVersion { get; set; } = "";
+
+        /// <summary>
+        /// Phiên bản GAME (không phải version app) mà bản Việt hóa này đã test/áp dụng — hardcode thủ công,
+        /// chỉ mang tính hiển thị cho người dùng biết, KHÔNG dùng để so sánh tự động (khác với SupportedBuildIds).
+        /// Vd: "Bản Steam 1.3.11" hoặc để rỗng nếu chưa muốn hiện.
+        /// </summary>
+        public string ApplicableGameVersion { get; set; } = "";
+
         public string? InstallNote { get; set; }
     }
     public static class GameCatalog
@@ -77,7 +91,8 @@ namespace VietHoaInstaller.Models
                 SteamAppId = "246620",
                 GitHubOwner = "Ryo147",
                 GitHubRepo = "PatchVH",
-                AssetNameContains = "P.I"
+                AssetNameContains = "P.I",
+                ApplicableGameVersion = "1.23.0.12"
             },
             new GameProfile
             {

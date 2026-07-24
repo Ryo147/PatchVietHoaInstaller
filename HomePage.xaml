@@ -45,6 +45,9 @@
                                    Foreground="{StaticResource WarnBrush}" FontWeight="SemiBold"
                                    FontSize="12.5" VerticalAlignment="Center"/>
                     </StackPanel>
+                    <TextBlock x:Name="TxtApplicableVersion" Text=""
+               Foreground="{StaticResource TextMutedBrush}" FontSize="11"
+               Margin="0,4,0,0" Visibility="Collapsed"/>
                 </StackPanel>
                 <Button Grid.Column="1" x:Name="BtnChangeGame" Content="Đổi game" VerticalAlignment="Bottom"
                         Style="{StaticResource FlatCardButtonStyle}" Click="BtnChangeGame_Click"/>
