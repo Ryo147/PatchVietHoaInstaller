@@ -63,7 +63,7 @@
                                         <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                         <TextBlock Text="Cập nhật" FontSize="11.5" VerticalAlignment="Center"/>
                                     </StackPanel>
-                                    <Ellipse x:Name="NavUpdateDot" Width="6" Height="6" Fill="{StaticResource AccentBrush}" Stroke="#161A24" StrokeThickness="1.5" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,10,0" Visibility="Collapsed"/>
+                                    <Ellipse x:Name="NavUpdateDot" Width="6" Height="6" Fill="{StaticResource AccentBrush}" Stroke="#161A24" StrokeThickness="1.5" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="9,7,0,0" Visibility="Collapsed"/>
                                 </Grid>
                             </RadioButton>
                             <RadioButton x:Name="NavSettings" Style="{StaticResource TopNavTabStyle}" GroupName="Nav" Tag="Settings" Checked="NavButton_Checked">

@@ -57,6 +57,37 @@ namespace VietHoaInstaller.Services
             return client;
         }
 
+        /// <summary>Lấy thông tin release theo đúng tag chỉ định (không phụ thuộc release nào khác trong repo đang "mới nhất").
+        /// Dùng cho các GameProfile đã tách tag riêng, để game này không bị "che" khi có game khác tạo release mới hơn.</summary>
+        public static async Task<GitHubRelease?> GetReleaseByTagAsync(string owner, string repo, string tag, CancellationToken ct = default)
+        {
+            try
+            {
+                string url = $"https://api.github.com/repos/{owner}/{repo}/releases/tags/{Uri.EscapeDataString(tag)}";
+                using var response = await _http.GetAsync(url, ct);
+                if (!response.IsSuccessStatusCode)
+                    return null;
+
+                await using var stream = await response.Content.ReadAsStreamAsync(ct);
+                return await JsonSerializer.DeserializeAsync<GitHubRelease>(stream, cancellationToken: ct);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Điểm gọi API duy nhất mà PatchInstallerService/PatchUpdateCheckerService nên dùng.
+        /// Nếu GameProfile có cấu hình <paramref name="releaseTag"/> riêng -> gọi đúng release đó (an toàn khi
+        /// nhiều game tách tag riêng). Nếu để rỗng -> fallback về release "latest" chung của repo (hành vi cũ,
+        /// chỉ an toàn khi repo chỉ có đúng 1 release đang hoạt động cho tất cả game).
+        /// </summary>
+        public static Task<GitHubRelease?> GetReleaseForProfileAsync(string owner, string repo, string? releaseTag, CancellationToken ct = default)
+            => string.IsNullOrWhiteSpace(releaseTag)
+                ? GetLatestReleaseAsync(owner, repo, ct)
+                : GetReleaseByTagAsync(owner, repo, releaseTag, ct);
+
         /// <summary>Lấy thông tin bản release mới nhất của 1 repo. Trả về null nếu lỗi mạng/repo không có release/hết rate limit.</summary>
         public static async Task<GitHubRelease?> GetLatestReleaseAsync(string owner, string repo, CancellationToken ct = default)
         {

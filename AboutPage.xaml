@@ -25,6 +25,11 @@
                     </Hyperlink>
                 </TextBlock>
                 <TextBlock Margin="0,0,10,0">
+                    <Hyperlink NavigateUri="https://www.facebook.com/dich2000s/" RequestNavigate="Hyperlink_RequestNavigate">
+                        <Run Text="Facebook"/>
+                    </Hyperlink>
+                 </TextBlock>
+                <TextBlock Margin="0,0,10,0">
                     <Hyperlink NavigateUri="https://github.com/Ryo147/PatchVietHoaInstaller" RequestNavigate="Hyperlink_RequestNavigate">
                         <Run Text="GitHub"/>
                     </Hyperlink>

@@ -31,6 +31,14 @@ namespace VietHoaInstaller.Models
         /// <summary>Tên repo GitHub chứa release patch.</summary>
         public string GitHubRepo { get; set; } = "PatchVH";
 
+        /// <summary>
+        /// Tag/release GitHub RIÊNG cho game này (vd "1", "re2r", "plague-inc"...). Để rỗng = dùng chung
+        /// release "latest" của cả repo với các game khác (hành vi cũ, chỉ an toàn khi repo chỉ có 1 release
+        /// hoạt động). Khi tách tag riêng cho từng game, một release mới của game A sẽ KHÔNG ảnh hưởng tới
+        /// việc tool tìm patch của game B nữa — mỗi game tự quản lý release/tag của chính nó.
+        /// </summary>
+        public string GitHubReleaseTag { get; set; } = "";
+
         /// <summary>Lọc đúng file trong release nếu 1 release có nhiều asset (vd release chung cho nhiều game). Để rỗng nếu release chỉ có 1 file.</summary>
         public string AssetNameContains { get; set; } = "";
 
@@ -81,7 +89,7 @@ namespace VietHoaInstaller.Models
             {
                 Name = "Plague Inc: Evolved",
                 ExpectedHash = "46ad3b2f97934edcf692a3c70bd137d298438895f196439ae0370185ae150e44",
-                PatchDownloadUrl = "https://github.com/Ryo147/PatchVH/releases/download/1/PATCHVH_P.I._RELEASE_v1.0.zip",
+                PatchDownloadUrl = "https://github.com/Ryo147/PatchVH/releases/download/1/PATCHVH_P.I._v1.0.1.zip",
                 RequiredGameFiles = new()
                 {
                     @"PlagueIncEvolved_Data\resources.assets",
@@ -91,8 +99,13 @@ namespace VietHoaInstaller.Models
                 SteamAppId = "246620",
                 GitHubOwner = "Ryo147",
                 GitHubRepo = "PatchVH",
+                GitHubReleaseTag = "1",
                 AssetNameContains = "P.I",
-                ApplicableGameVersion = "1.23.0.12"
+                ApplicableGameVersion = "1.23.0.12",
+                // Khớp với version trong PatchDownloadUrl ở trên ("..._v1.0.zip"). Nếu để rỗng,
+                // PatchUpdateCheckerService sẽ luôn coi release hiện tại là "bản mới" ở lần kiểm tra đầu,
+                // dù người dùng đã có đúng bản mới nhất -> báo giả liên tục.
+                KnownPatchVersion = "1.0.1"
             },
             new GameProfile
             {
@@ -108,6 +121,7 @@ namespace VietHoaInstaller.Models
                 LaunchExeRelativePath = "RE2R-Mod/Modmanager.exe",
                 GitHubOwner = "Ryo147",
                 GitHubRepo = "PatchVH",
+                GitHubReleaseTag = "", // TODO: điền tag/release thật của RE2R trước khi bỏ IsComingSoon, để không dùng chung "latest" với game khác
                 AssetNameContains = "RE2R",
                 InstallNote = "Đây là PATCH đi kèm với FluffyModManager nên bạn cần CHỌN THƯ MỤC THỦ CÔNG. Bản dịch có sử dụng phương ngữ miền Nam vào lời thoại nhân vật. Cân nhắc trước khi chơi."
             },

@@ -29,8 +29,8 @@ namespace VietHoaInstaller
             int available = items.Count(i => i.CanInstall);
             int comingSoon = items.Count - available;
             TxtProjectCount.Text = comingSoon > 0
-                ? $"{items.Count} dự án — {available} khả dụng, {comingSoon} sắp ra mắt"
-                : $"{items.Count} dự án khả dụng";
+                ? $"{items.Count} dự án — {available} hoàn thành, {comingSoon} đang thực hiện"
+                : $"{items.Count} dự án hoàn thành";
         }
 
         private void BtnInstallGame_Click(object sender, RoutedEventArgs e)
@@ -59,9 +59,9 @@ namespace VietHoaInstaller
 
             public string StatusText => Profile.IsComingSoon
                 ? "Bản Việt hóa đang được thực hiện"
-                : "Sẵn sàng cài đặt";
+                : "Có thể cài đặt";
 
-            public string BadgeText => Profile.IsComingSoon ? "Sắp ra mắt" : "Khả dụng";
+            public string BadgeText => Profile.IsComingSoon ? "Đang thực hiện" : "Hoàn thành";
             public Brush StatusBrush => Profile.IsComingSoon ? ComingSoonBrush : AvailableBrush;
             public Brush BadgeForeground => Profile.IsComingSoon ? ComingSoonBrush : AvailableBrush;
             public Brush BadgeBackground => Profile.IsComingSoon ? ComingSoonBg : AvailableBg;

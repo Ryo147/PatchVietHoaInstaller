@@ -44,6 +44,7 @@ namespace VietHoaInstaller
             _settingsPage.AlwaysOnTopChanged += isOn => Topmost = isOn;
             _settingsPage.ClearActivityLogRequested += () => _homePage.ClearLog();
             _settingsPage.ToastRequested += ShowToast;
+            _settingsPage.TraySettingsChanged += RestartPatchUpdateTimer;
 
             SetPage(_homePage);
 
@@ -72,8 +73,8 @@ namespace VietHoaInstaller
             };
 
             var menu = new System.Windows.Forms.ContextMenuStrip();
-            menu.Items.Add("Mở ứng dụng", null, (_, _) => { Show(); WindowState = WindowState.Normal; Activate(); });
-            menu.Items.Add("Kiểm tra bản Patch mới ngay", null, async (_, _) =>
+            menu.Items.Add("Mở phần mềm", null, (_, _) => { Show(); WindowState = WindowState.Normal; Activate(); });
+            menu.Items.Add("Kiểm tra bản Patch mới", null, async (_, _) =>
                 await CheckForPatchUpdatesAsync(showBalloonIfFound: true, forceToastIfNone: true));
             menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
             menu.Items.Add("Thoát", null, (_, _) => { _isExitingForReal = true; System.Windows.Application.Current.Shutdown(); });
@@ -108,6 +109,15 @@ namespace VietHoaInstaller
             };
             _patchCheckTimer.Tick += async (_, _) => await CheckForPatchUpdatesAsync(showBalloonIfFound: true);
             _patchCheckTimer.Start();
+        }
+
+        /// <summary>Gọi lại mỗi khi người dùng đổi cài đặt Tray/Auto-check ở trang Cài đặt, để áp dụng ngay
+        /// không cần khởi động lại app.</summary>
+        private void RestartPatchUpdateTimer()
+        {
+            _patchCheckTimer?.Stop();
+            _patchCheckTimer = null;
+            StartPatchUpdateTimer();
         }
 
         private async Task CheckForPatchUpdatesAsync(bool showBalloonIfFound, bool forceToastIfNone = false)

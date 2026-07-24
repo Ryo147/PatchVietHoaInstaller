@@ -11,7 +11,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0">
-            <TextBlock Text="Dự án Việt hóa"
+            <TextBlock Text="Danh sách Việt hóa"
                        Foreground="{StaticResource TextPrimaryBrush}" FontSize="16" FontWeight="SemiBold"/>
             <TextBlock x:Name="TxtProjectCount" Foreground="{StaticResource TextMutedBrush}" FontSize="11.5" Margin="0,3,0,0"/>
         </StackPanel>

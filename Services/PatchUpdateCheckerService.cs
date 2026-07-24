@@ -22,7 +22,7 @@ namespace VietHoaInstaller.Services
                 if (string.IsNullOrWhiteSpace(profile.GitHubOwner) || string.IsNullOrWhiteSpace(profile.GitHubRepo))
                     continue;
 
-                var release = await GitHubReleaseService.GetLatestReleaseAsync(profile.GitHubOwner, profile.GitHubRepo);
+                var release = await GitHubReleaseService.GetReleaseForProfileAsync(profile.GitHubOwner, profile.GitHubRepo, profile.GitHubReleaseTag);
                 if (release == null) continue;
 
                 var asset = GitHubReleaseService.FindAsset(release, profile.AssetNameContains);

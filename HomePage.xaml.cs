@@ -75,6 +75,7 @@ namespace VietHoaInstaller
             _installer.HashAlgorithmName = profile.HashAlgorithmName;
             _installer.GitHubOwner = profile.GitHubOwner;
             _installer.GitHubRepo = profile.GitHubRepo;
+            _installer.GitHubReleaseTag = profile.GitHubReleaseTag;
             _installer.AssetNameContains = profile.AssetNameContains;
 
             if (string.IsNullOrWhiteSpace(profile.ApplicableGameVersion))
@@ -553,7 +554,7 @@ namespace VietHoaInstaller
 
             if (message.Contains("LƯU Ý", StringComparison.OrdinalIgnoreCase))
                 return (Brush)FindResource("WarnBrush");
-            
+
             return (Brush)FindResource("TextMutedBrush");
         }
 

@@ -44,6 +44,7 @@ namespace VietHoaInstaller.Services
         /// <summary>Nếu có, tool sẽ thử gọi GitHub API lấy link + hash bản patch mới nhất trước khi cài, thay vì dùng PatchDownloadUrl hardcode.</summary>
         public string GitHubOwner { get; set; } = "";
         public string GitHubRepo { get; set; } = "";
+        public string GitHubReleaseTag { get; set; } = "";
         public string AssetNameContains { get; set; } = "";
 
         public List<string> RequiredGameFiles { get; set; } = new()
@@ -170,7 +171,7 @@ namespace VietHoaInstaller.Services
                 if (!string.IsNullOrWhiteSpace(GitHubOwner) && !string.IsNullOrWhiteSpace(GitHubRepo))
                 {
                     progress.Report(new InstallProgress(0, "Đang kiểm tra bản patch mới nhất..."));
-                    var release = await GitHubReleaseService.GetLatestReleaseAsync(GitHubOwner, GitHubRepo, ct);
+                    var release = await GitHubReleaseService.GetReleaseForProfileAsync(GitHubOwner, GitHubRepo, GitHubReleaseTag, ct);
                     var asset = release != null ? GitHubReleaseService.FindAsset(release, AssetNameContains) : null;
 
                     if (asset != null)

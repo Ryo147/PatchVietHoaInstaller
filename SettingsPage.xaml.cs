@@ -17,6 +17,9 @@ namespace VietHoaInstaller
         /// <summary>MainWindow lắng nghe để hiện thông báo nhỏ (toast) xác nhận đã lưu.</summary>
         public event Action<string>? ToastRequested;
 
+        /// <summary>MainWindow lắng nghe để khởi động lại timer kiểm tra Patch ngay khi đổi cài đặt liên quan tới tray.</summary>
+        public event Action? TraySettingsChanged;
+
         public SettingsPage()
         {
             InitializeComponent();
@@ -32,6 +35,9 @@ namespace VietHoaInstaller
             ChkConfirmUninstall.IsChecked = settings.ConfirmBeforeUninstall;
             ChkAlwaysOnTop.IsChecked = settings.AlwaysOnTop;
             ChkAutoOpenFolder.IsChecked = settings.AutoOpenFolderAfterInstall;
+            ChkMinimizeToTray.IsChecked = settings.MinimizeToTrayOnClose;
+            ChkAutoCheckPatch.IsChecked = settings.AutoCheckPatchUpdate;
+            TxtPatchCheckInterval.Text = Math.Max(15, settings.PatchCheckIntervalMinutes).ToString();
             TxtRememberedFolder.Text = string.IsNullOrWhiteSpace(settings.LastGameFolder)
                 ? "(chưa có)"
                 : settings.LastGameFolder;
@@ -84,6 +90,48 @@ namespace VietHoaInstaller
             settings.AutoOpenFolderAfterInstall = ChkAutoOpenFolder.IsChecked == true;
             SettingsManager.Save(settings);
             ToastRequested?.Invoke("Đã lưu cài đặt");
+        }
+
+        private void ChkMinimizeToTray_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isLoading)
+                return;
+
+            var settings = SettingsManager.Load();
+            settings.MinimizeToTrayOnClose = ChkMinimizeToTray.IsChecked == true;
+            SettingsManager.Save(settings);
+            ToastRequested?.Invoke("Đã lưu cài đặt");
+            TraySettingsChanged?.Invoke();
+        }
+
+        private void ChkAutoCheckPatch_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isLoading)
+                return;
+
+            var settings = SettingsManager.Load();
+            settings.AutoCheckPatchUpdate = ChkAutoCheckPatch.IsChecked == true;
+            SettingsManager.Save(settings);
+            ToastRequested?.Invoke("Đã lưu cài đặt");
+            TraySettingsChanged?.Invoke();
+        }
+
+        private void TxtPatchCheckInterval_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (_isLoading)
+                return;
+
+            if (!int.TryParse(TxtPatchCheckInterval.Text, out int minutes) || minutes < 15)
+            {
+                minutes = 15;
+            }
+            TxtPatchCheckInterval.Text = minutes.ToString();
+
+            var settings = SettingsManager.Load();
+            settings.PatchCheckIntervalMinutes = minutes;
+            SettingsManager.Save(settings);
+            ToastRequested?.Invoke("Đã lưu cài đặt");
+            TraySettingsChanged?.Invoke();
         }
 
         private void BtnClearFolder_Click(object sender, RoutedEventArgs e)
