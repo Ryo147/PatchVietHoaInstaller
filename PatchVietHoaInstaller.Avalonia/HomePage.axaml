@@ -74,10 +74,14 @@
 
 			<Grid Grid.Row="4" ColumnDefinitions="*,14,*">
 				<Button x:Name="BtnInstall" Grid.Column="0" Content="CÀI ĐẶT PATCH"
-				        Classes="PrimaryButton" Click="BtnInstall_Click"/>
+						Classes="PrimaryButton" Height="44"
+						HorizontalAlignment="Stretch"
+						Click="BtnInstall_Click"/>
 				<Button x:Name="BtnUninstall" Grid.Column="2" Content="Gỡ Việt Hóa"
-				        Classes="SecondaryButton" Click="BtnUninstall_Click"
-				        IsEnabled="False"/>
+						Classes="SecondaryButton" Height="44"
+						HorizontalAlignment="Stretch"
+						Click="BtnUninstall_Click"
+						IsEnabled="False"/>
 			</Grid>
 
 			<StackPanel Grid.Row="5" x:Name="PanelProgress" IsVisible="False" Margin="0,16,0,0">

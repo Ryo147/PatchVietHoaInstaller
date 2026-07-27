@@ -5,7 +5,7 @@
 	<Grid Margin="20,20,24,16">
 		<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="400" Width="400">
 			<Border Width="84" Height="84" CornerRadius="42" Background="#26FF5A4A" HorizontalAlignment="Center">
-				<Image Source="avares://VietHoaInstaller.Avalonia/Assets/Dich2000sICON.ico" Width="44" Height="44"
+				<Image Source="avares://PatchVietHoaInstaller/Assets/Dich2000sICON.ico" Width="44" Height="44"
 				       HorizontalAlignment="Center" VerticalAlignment="Center"/>
 			</Border>
 

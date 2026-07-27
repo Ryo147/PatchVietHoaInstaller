@@ -19,7 +19,7 @@
 				<Grid Grid.Row="0" Background="#161A24" ColumnDefinitions="Auto,*,Auto"
 				      PointerPressed="TitleBar_PointerPressed">
 
-					<Image Grid.Column="0" Source="avares://VietHoaInstaller.Avalonia/Assets/Dich2000sICON.ico"
+					<Image Grid.Column="0" Source="avares://PatchVietHoaInstaller/Assets/Dich2000sICON.ico"
 					       Width="16" Height="16" VerticalAlignment="Center" Margin="14,0,14,0"/>
 
 					<Grid Grid.Column="1" HorizontalAlignment="Center">
@@ -40,21 +40,18 @@
 						<StackPanel Orientation="Horizontal">
 							<RadioButton x:Name="NavHome" Classes="TopNavTab" GroupName="Nav" IsChecked="True" Tag="Home" Checked="NavButton_Checked">
 								<StackPanel Orientation="Horizontal" Spacing="6">
-									<TextBlock Text="🏠" FontSize="13" VerticalAlignment="Center"/>
-									<TextBlock Text="Trang chủ" FontSize="11.5" VerticalAlignment="Center"/>
+									<Path Classes="NavIcon" Data="{StaticResource IconHome}" Width="13" Height="13" Stretch="Uniform" VerticalAlignment="Center"/>									<TextBlock Text="Trang chủ" FontSize="11.5" VerticalAlignment="Center"/>
 								</StackPanel>
 							</RadioButton>
 							<RadioButton x:Name="NavLibrary" Classes="TopNavTab" GroupName="Nav" Tag="Library" Checked="NavButton_Checked">
 								<StackPanel Orientation="Horizontal" Spacing="6">
-									<TextBlock Text="📁" FontSize="13" VerticalAlignment="Center"/>
-									<TextBlock Text="Dự án" FontSize="11.5" VerticalAlignment="Center"/>
+									<Path Classes="NavIcon" Data="{StaticResource IconFolder}" Width="13" Height="13" Stretch="Uniform" VerticalAlignment="Center"/>									<TextBlock Text="Dự án" FontSize="11.5" VerticalAlignment="Center"/>
 								</StackPanel>
 							</RadioButton>
 							<RadioButton x:Name="NavUpdates" Classes="TopNavTab" GroupName="Nav" Tag="Updates" Checked="NavButton_Checked">
 								<Grid>
 									<StackPanel Orientation="Horizontal" Spacing="6">
-										<TextBlock Text="🔄" FontSize="13" VerticalAlignment="Center"/>
-										<TextBlock Text="Cập nhật" FontSize="11.5" VerticalAlignment="Center"/>
+										<Path Classes="NavIcon" Data="{StaticResource IconRefresh}" Width="13" Height="13" Stretch="Uniform" VerticalAlignment="Center"/>										<TextBlock Text="Cập nhật" FontSize="11.5" VerticalAlignment="Center"/>
 									</StackPanel>
 									<Ellipse x:Name="NavUpdateDot" Width="6" Height="6" Fill="{StaticResource AccentBrush}"
 									         Stroke="#161A24" StrokeThickness="1.5" HorizontalAlignment="Left"
@@ -63,22 +60,24 @@
 							</RadioButton>
 							<RadioButton x:Name="NavSettings" Classes="TopNavTab" GroupName="Nav" Tag="Settings" Checked="NavButton_Checked">
 								<StackPanel Orientation="Horizontal" Spacing="6">
-									<TextBlock Text="⚙" FontSize="13" VerticalAlignment="Center"/>
-									<TextBlock Text="Cài đặt" FontSize="11.5" VerticalAlignment="Center"/>
+									<Path Classes="NavIcon" Data="{StaticResource IconSettings}" Width="13" Height="13" Stretch="Uniform" VerticalAlignment="Center"/>									<TextBlock Text="Cài đặt" FontSize="11.5" VerticalAlignment="Center"/>
 								</StackPanel>
 							</RadioButton>
 							<RadioButton x:Name="NavAbout" Classes="TopNavTab" GroupName="Nav" Tag="About" Checked="NavButton_Checked">
 								<StackPanel Orientation="Horizontal" Spacing="6">
-									<TextBlock Text="ℹ" FontSize="13" VerticalAlignment="Center"/>
-									<TextBlock Text="Giới thiệu" FontSize="11.5" VerticalAlignment="Center"/>
+									<Path Classes="NavIcon" Data="{StaticResource IconInfo}" Width="13" Height="13" Stretch="Uniform" VerticalAlignment="Center"/>									<TextBlock Text="Giới thiệu" FontSize="11.5" VerticalAlignment="Center"/>
 								</StackPanel>
 							</RadioButton>
 						</StackPanel>
 					</Grid>
 
 					<StackPanel Grid.Column="2" Orientation="Horizontal">
-						<Button x:Name="BtnMinimize" Content="—" Classes="TitleBarButton" Click="BtnMinimize_Click"/>
-						<Button x:Name="BtnClose" Content="✕" Classes="CloseButton" Click="BtnClose_Click"/>
+						<Button x:Name="BtnMinimize" Classes="TitleBarButton" Click="BtnMinimize_Click">
+							<Path Classes="TitleBarIcon" Data="{StaticResource IconMinimize}" Width="11" Height="11" Stretch="Uniform"/>
+						</Button>
+						<Button x:Name="BtnClose" Classes="CloseButton" Click="BtnClose_Click">
+							<Path Classes="TitleBarIcon" Data="{StaticResource IconClose}" Width="11" Height="11" Stretch="Uniform"/>
+						</Button>
 					</StackPanel>
 				</Grid>
 
