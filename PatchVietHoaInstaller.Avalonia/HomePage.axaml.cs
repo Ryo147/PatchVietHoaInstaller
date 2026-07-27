@@ -601,7 +601,7 @@ namespace VietHoaInstaller
                 using var stream = AssetLoader.Open(uri);
                 var bitmap = new Bitmap(stream);
 
-                BannerImageBrush.Source = bitmap;
+                ((ImageBrush)BannerBorder.Background!).Source = bitmap;
 
                 // Hiệu ứng mờ-dần khi banner đổi ảnh (Transition khai báo sẵn trong XAML lo phần animate).
                 // Phải đặt Opacity=1 ở tick dispatcher SAU (xem ghi chú tương tự trong SetStatus).
@@ -628,12 +628,12 @@ namespace VietHoaInstaller
             // (khác easing 3-keyframe của bản WPF gốc) — ưu tiên đúng hành vi hơn đúng tuyệt đối easing.
             // GHI CHÚ: phải đặt X=1.0 ở tick dispatcher SAU, nếu không cả 2 giá trị (0.9 rồi 1.0) sẽ được
             // gán trong cùng 1 frame và Transition sẽ không có gì để nội suy (nhảy thẳng, không "nảy").
-            StatusBadgeScale.ScaleX = 0.9;
-            StatusBadgeScale.ScaleY = 0.9;
+            ((ScaleTransform)StatusRow.RenderTransform!).ScaleX = 0.9;
+            ((ScaleTransform)StatusRow.RenderTransform!).ScaleY = 0.9;
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                StatusBadgeScale.ScaleX = 1.0;
-                StatusBadgeScale.ScaleY = 1.0;
+                ((ScaleTransform)StatusRow.RenderTransform!).ScaleX = 1.0;
+                ((ScaleTransform)StatusRow.RenderTransform!).ScaleY = 1.0;
             }, Avalonia.Threading.DispatcherPriority.Render);
         }
     }

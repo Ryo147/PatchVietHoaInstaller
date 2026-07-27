@@ -185,13 +185,13 @@ namespace VietHoaInstaller
         /// Transition khai báo sẵn trong XAML (TranslateTransform.Transitions) tự lo phần animate mượt.</summary>
         private void AnimateNavIndicator(int slotIndex)
         {
-            NavIndicatorTransform.X = GetNavIndicatorTargetX(slotIndex);
+            ((TranslateTransform)NavIndicator.RenderTransform!).X = GetNavIndicatorTargetX(slotIndex);
         }
 
         /// <summary>Đặt NGAY vị trí gạch chân chỉ báo khi khởi động app, tránh giật animation từ X=0.</summary>
         private void SetNavIndicatorPositionInstant(int slotIndex)
         {
-            NavIndicatorTransform.X = GetNavIndicatorTargetX(slotIndex);
+            ((TranslateTransform)NavIndicator.RenderTransform!).X = GetNavIndicatorTargetX(slotIndex);
         }
 
         private double GetNavIndicatorTargetX(int slotIndex)
@@ -203,14 +203,14 @@ namespace VietHoaInstaller
         /// <summary>Đổi trang kèm hiệu ứng mờ dần + trượt nhẹ từ dưới lên (Transition khai báo trong XAML).</summary>
         private void SetPage(UserControl page)
         {
-            MainContentTransform.Y = 10;
+            ((TranslateTransform)MainContent.RenderTransform!).Y = 10;
             MainContent.Opacity = 0;
             MainContent.Content = page;
 
             // Đặt lại giá trị đích ngay sau khi gán Content -> Transition tự nội suy từ (10, 0 độ mờ) về (0, 1).
             Dispatcher.UIThread.Post(() =>
             {
-                MainContentTransform.Y = 0;
+                ((TranslateTransform)MainContent.RenderTransform!).Y = 0;
                 MainContent.Opacity = 1;
             });
         }

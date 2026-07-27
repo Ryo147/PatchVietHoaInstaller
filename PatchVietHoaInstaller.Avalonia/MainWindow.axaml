@@ -27,10 +27,10 @@
 						        HorizontalAlignment="Left" VerticalAlignment="Bottom"
 						        Background="{StaticResource AccentBrush}">
 							<Border.RenderTransform>
-								<TranslateTransform x:Name="NavIndicatorTransform" X="0">
+								<TranslateTransform X="0">
 									<TranslateTransform.Transitions>
 										<Transitions>
-											<DoubleTransition Property="TranslateTransform.XProperty" Duration="0:0:0.24"/>
+											<DoubleTransition Property="X" Duration="0:0:0.24"/>
 										</Transitions>
 									</TranslateTransform.Transitions>
 								</TranslateTransform>
@@ -85,10 +85,10 @@
 				<!-- ============ NỘI DUNG TRANG ============ -->
 				<ContentControl Grid.Row="1" x:Name="MainContent" Focusable="False" Opacity="1">
 					<ContentControl.RenderTransform>
-						<TranslateTransform x:Name="MainContentTransform" Y="0">
+						<TranslateTransform Y="0">
 							<TranslateTransform.Transitions>
 								<Transitions>
-									<DoubleTransition Property="TranslateTransform.YProperty" Duration="0:0:0.22"/>
+									<DoubleTransition Property="Y" Duration="0:0:0.22"/>
 								</Transitions>
 							</TranslateTransform.Transitions>
 						</TranslateTransform>

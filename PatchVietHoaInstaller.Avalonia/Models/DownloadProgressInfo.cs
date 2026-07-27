@@ -1,4 +1,4 @@
-﻿namespace PatchVietHoaInstaller.Models
+﻿namespace VietHoaInstaller.Models
 {
     public class DownloadProgressInfo
     {

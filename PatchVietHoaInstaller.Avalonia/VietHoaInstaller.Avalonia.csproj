@@ -6,10 +6,10 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<AssemblyName>PatchVietHoaInstaller</AssemblyName>
-		<RootNamespace>VietHoaInstaller</RootNamespace>
+		<RootNamespace>PatchVietHoaInstaller</RootNamespace>
 
 		<!-- Nguồn duy nhất khai báo version của app. Mỗi lần release, chỉ cần sửa số này ở đây -->
-		<Version>3.1.0</Version>
+		<Version>4.0.0</Version>
 
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<Company>PatchVietHoaInstaller</Company>
@@ -34,12 +34,9 @@
 		<PackageReference Include="Avalonia.Desktop" Version="11.2.3" />
 		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3" />
 		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3" />
-		<!-- Chỉ cần khi Debug/Designer preview -->
 		<PackageReference Include="Avalonia.Diagnostics" Version="11.2.3" Condition="'$(Configuration)' == 'Debug'" />
-		<!-- Cần package này vì TargetFramework không còn "-windows": Registry API chỉ thật sự chạy
-		     trên Windows (được guard bằng RuntimeInformation.IsOSPlatform trong SteamLocatorService),
-		     nhưng vẫn cần package để build được trên mọi OS. -->
 		<PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
+		<PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
 	</ItemGroup>
 
 	<ItemGroup>
