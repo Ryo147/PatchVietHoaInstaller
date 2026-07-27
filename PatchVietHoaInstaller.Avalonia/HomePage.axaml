@@ -1,0 +1,108 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="VietHoaInstaller.HomePage"
+             FontFamily="Arial">
+	<Grid RowDefinitions="150,*">
+
+		<!-- ===== BANNER ===== -->
+		<Grid Grid.Row="0">
+			<Border x:Name="BannerBorder">
+				<Border.Background>
+					<ImageBrush x:Name="BannerImageBrush" Stretch="UniformToFill"/>
+				</Border.Background>
+				<Border.Transitions>
+					<Transitions>
+						<DoubleTransition Property="Opacity" Duration="0:0:0.26"/>
+					</Transitions>
+				</Border.Transitions>
+			</Border>
+			<!-- Lớp phủ tối dần từ dưới lên để chữ luôn đọc được dù ảnh sáng hay tối -->
+			<Border>
+				<Border.Background>
+					<LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+						<GradientStop Color="#001B1F2A" Offset="0"/>
+						<GradientStop Color="#CC1B1F2A" Offset="1"/>
+					</LinearGradientBrush>
+				</Border.Background>
+			</Border>
+			<Grid Margin="20,0,20,14" VerticalAlignment="Bottom" ColumnDefinitions="*,Auto">
+				<StackPanel Grid.Column="0" VerticalAlignment="Bottom">
+					<TextBlock x:Name="TxtSelectedGame" Text="—"
+					           Foreground="White" FontSize="19" FontWeight="Bold"
+					           TextTrimming="CharacterEllipsis"/>
+					<StackPanel Orientation="Horizontal" Margin="0,6,0,0" x:Name="StatusRow" RenderTransformOrigin="0,0.5">
+						<StackPanel.RenderTransform>
+							<ScaleTransform x:Name="StatusBadgeScale" ScaleX="1" ScaleY="1">
+								<ScaleTransform.Transitions>
+									<Transitions>
+										<DoubleTransition Property="ScaleTransform.ScaleXProperty" Duration="0:0:0.18"/>
+										<DoubleTransition Property="ScaleTransform.ScaleYProperty" Duration="0:0:0.18"/>
+									</Transitions>
+								</ScaleTransform.Transitions>
+							</ScaleTransform>
+						</StackPanel.RenderTransform>
+						<Ellipse x:Name="StatusDot" Width="7" Height="7" Fill="{StaticResource WarnBrush}"
+						         Margin="0,0,6,0" VerticalAlignment="Center"/>
+						<TextBlock x:Name="TxtStatus" Text="Chưa cài đặt Việt hóa"
+						           Foreground="{StaticResource WarnBrush}" FontWeight="SemiBold"
+						           FontSize="12.5" VerticalAlignment="Center"/>
+					</StackPanel>
+					<TextBlock x:Name="TxtApplicableVersion" Text=""
+					           Foreground="{StaticResource TextMutedBrush}" FontSize="11"
+					           Margin="0,4,0,0" IsVisible="False"/>
+				</StackPanel>
+				<Button Grid.Column="1" x:Name="BtnChangeGame" Content="Đổi game" VerticalAlignment="Bottom"
+				        Classes="FlatCardButton" Click="BtnChangeGame_Click"/>
+			</Grid>
+		</Grid>
+
+		<!-- ===== PHẦN THÂN ===== -->
+		<Grid Grid.Row="1" Margin="20,18,24,16" RowDefinitions="Auto,10,34,18,42,Auto,16,1,10,*">
+
+			<TextBlock x:Name="LblFolderLabel" Grid.Row="0" Text="Thư mục game:"
+			           Foreground="{StaticResource TextPrimaryBrush}" FontSize="13.5"/>
+
+			<Grid Grid.Row="2" ColumnDefinitions="*,10,Auto,10,Auto">
+				<TextBox x:Name="TxtGamePath" Grid.Column="0" Classes="PathTextBox"
+				         Text="Nhấp Chọn... để cài đặt thư mục cần cài đặt Việt hóa"
+				         TextWrapping="NoWrap" Foreground="White"/>
+				<Button x:Name="BtnAutoDetect" Grid.Column="2" Content="Tự động tìm"
+				        Classes="BrowseButton" Click="BtnAutoDetect_Click"/>
+				<Button x:Name="BtnBrowse" Grid.Column="4" Content="Chọn..."
+				        Classes="BrowseButton" Click="BtnBrowse_Click"/>
+			</Grid>
+
+			<Grid Grid.Row="4" ColumnDefinitions="*,14,*">
+				<Button x:Name="BtnInstall" Grid.Column="0" Content="CÀI ĐẶT PATCH"
+				        Classes="PrimaryButton" Click="BtnInstall_Click"/>
+				<Button x:Name="BtnUninstall" Grid.Column="2" Content="Gỡ Việt Hóa"
+				        Classes="SecondaryButton" Click="BtnUninstall_Click"
+				        IsEnabled="False"/>
+			</Grid>
+
+			<StackPanel Grid.Row="5" x:Name="PanelProgress" IsVisible="False" Margin="0,16,0,0">
+				<Grid ColumnDefinitions="Auto,*,Auto">
+					<TextBlock Grid.Column="0" Text="Đang cài đặt:" Foreground="{StaticResource TextMutedBrush}"
+					           FontSize="12.5" VerticalAlignment="Center" Margin="0,0,10,0"/>
+					<ProgressBar x:Name="ProgressInstall" Grid.Column="1"
+					             Minimum="0" Maximum="100" Value="0" VerticalAlignment="Center"/>
+					<TextBlock x:Name="TxtPercent" Grid.Column="2" Text="0%"
+					           Foreground="{StaticResource TextPrimaryBrush}" FontSize="12.5"
+					           VerticalAlignment="Center" Margin="10,0,0,0" Width="36"/>
+				</Grid>
+				<TextBlock x:Name="TxtProgressDetail" Text=""
+				           Foreground="{StaticResource TextMutedBrush}" FontSize="11.5"
+				           Margin="0,6,0,0" TextTrimming="CharacterEllipsis"/>
+			</StackPanel>
+
+			<Border Grid.Row="7" Height="1" Background="{StaticResource BorderBrush1}"/>
+
+			<Grid Grid.Row="9" RowDefinitions="Auto,8,*">
+				<TextBlock Grid.Row="0" Text="NHẬT KÝ HOẠT ĐỘNG" Foreground="{StaticResource TextMutedBrush}" FontSize="11" FontWeight="SemiBold"/>
+				<ScrollViewer Grid.Row="2" x:Name="LogScrollViewer" VerticalScrollBarVisibility="Auto">
+					<TextBlock x:Name="TxtLog" FontSize="11" FontFamily="Consolas,Monospace" TextWrapping="Wrap" LineHeight="17"/>
+				</ScrollViewer>
+			</Grid>
+		</Grid>
+	</Grid>
+</UserControl>

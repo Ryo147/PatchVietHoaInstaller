@@ -1,0 +1,189 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="VietHoaInstaller.App"
+             RequestedThemeVariant="Dark">
+
+	<Application.Styles>
+		<FluentTheme />
+
+		<!-- Style cho tab điều hướng ngang ở title bar (thay TopNavTabStyle của bản WPF gốc) -->
+		<Style Selector="RadioButton.TopNavTab">
+			<Setter Property="Background" Value="Transparent" />
+			<Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+			<Setter Property="Padding" Value="14,0" />
+			<Setter Property="Width" Value="92" />
+			<Setter Property="Height" Value="44" />
+			<Setter Property="HorizontalContentAlignment" Value="Center" />
+			<Setter Property="VerticalContentAlignment" Value="Center" />
+			<Setter Property="BorderThickness" Value="0" />
+			<Setter Property="CornerRadius" Value="0" />
+		</Style>
+		<Style Selector="RadioButton.TopNavTab:checked">
+			<Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+		</Style>
+		<Style Selector="RadioButton.TopNavTab:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="#1E2330" />
+		</Style>
+
+		<!-- Nút minimize/close ở title bar (thay TitleBarButtonStyle/CloseButtonStyle) -->
+		<Style Selector="Button.TitleBarButton">
+			<Setter Property="Background" Value="Transparent" />
+			<Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+			<Setter Property="Width" Value="42" />
+			<Setter Property="Height" Value="44" />
+			<Setter Property="BorderThickness" Value="0" />
+			<Setter Property="CornerRadius" Value="0" />
+			<Setter Property="FontSize" Value="12" />
+		</Style>
+		<Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="#252B3A" />
+		</Style>
+		<Style Selector="Button.CloseButton">
+			<Setter Property="Background" Value="Transparent" />
+			<Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+			<Setter Property="Width" Value="42" />
+			<Setter Property="Height" Value="44" />
+			<Setter Property="BorderThickness" Value="0" />
+			<Setter Property="CornerRadius" Value="0" />
+			<Setter Property="FontSize" Value="11" />
+		</Style>
+		<Style Selector="Button.CloseButton:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="{StaticResource AccentBrush}" />
+			<Setter Property="Foreground" Value="White" />
+		</Style>
+
+		<!-- Style dạng link (thay cho <Hyperlink> của WPF, không có sẵn trong Avalonia core) -->
+		<Style Selector="Button.LinkButton">
+			<Setter Property="Background" Value="Transparent" />
+			<Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+			<Setter Property="BorderThickness" Value="0" />
+			<Setter Property="Padding" Value="0" />
+			<Setter Property="FontSize" Value="11.5" />
+			<Setter Property="Cursor" Value="Hand" />
+		</Style>
+		<Style Selector="Button.LinkButton:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="Transparent" />
+		</Style>
+
+		<!-- Hàng trong danh sách game (LibraryPage): rê chuột chỉ tô nền rất nhạt, thay cho
+		     DataTemplate.Triggers không tồn tại trong Avalonia -->
+		<Style Selector="Border.LibraryRow:pointerover">
+			<Setter Property="Background" Value="#12FFFFFF" />
+		</Style>
+
+		<!-- Nút phẳng dùng chung: "Đổi game" (HomePage), "Cài đặt" trong từng dòng (LibraryPage) -->
+		<Style Selector="Button.FlatCardButton">
+			<Setter Property="Background" Value="#22FFFFFF" />
+			<Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+			<Setter Property="BorderThickness" Value="0" />
+			<Setter Property="CornerRadius" Value="6" />
+			<Setter Property="Padding" Value="12,6" />
+			<Setter Property="FontSize" Value="11.5" />
+		</Style>
+		<Style Selector="Button.FlatCardButton:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="#33FFFFFF" />
+		</Style>
+		<Style Selector="Button.FlatCardButton:disabled /template/ ContentPresenter">
+			<Setter Property="Background" Value="#11FFFFFF" />
+			<Setter Property="TextElement.Foreground" Value="{StaticResource TextMutedBrush}" />
+		</Style>
+
+		<!-- Nút chính "CÀI ĐẶT PATCH" -->
+		<Style Selector="Button.PrimaryButton">
+			<Setter Property="Background" Value="{StaticResource AccentBrush}" />
+			<Setter Property="Foreground" Value="White" />
+			<Setter Property="BorderThickness" Value="0" />
+			<Setter Property="CornerRadius" Value="6" />
+			<Setter Property="FontWeight" Value="SemiBold" />
+			<Setter Property="FontSize" Value="12.5" />
+			<Setter Property="HorizontalContentAlignment" Value="Center" />
+			<Setter Property="VerticalContentAlignment" Value="Center" />
+		</Style>
+		<Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="#FF7565" />
+		</Style>
+		<Style Selector="Button.PrimaryButton:disabled /template/ ContentPresenter">
+			<Setter Property="Background" Value="#4A4E5C" />
+		</Style>
+
+		<!-- Nút phụ "Gỡ Việt Hóa" -->
+		<Style Selector="Button.SecondaryButton">
+			<Setter Property="Background" Value="Transparent" />
+			<Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+			<Setter Property="BorderBrush" Value="{StaticResource BorderBrush1}" />
+			<Setter Property="BorderThickness" Value="1" />
+			<Setter Property="CornerRadius" Value="6" />
+			<Setter Property="FontSize" Value="12.5" />
+			<Setter Property="HorizontalContentAlignment" Value="Center" />
+			<Setter Property="VerticalContentAlignment" Value="Center" />
+		</Style>
+		<Style Selector="Button.SecondaryButton:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="#14FFFFFF" />
+		</Style>
+		<Style Selector="Button.SecondaryButton:disabled /template/ ContentPresenter">
+			<Setter Property="TextElement.Foreground" Value="{StaticResource TextMutedBrush}" />
+		</Style>
+
+		<!-- Nút "Tự động tìm" / "Chọn..." bên cạnh ô đường dẫn -->
+		<Style Selector="Button.BrowseButton">
+			<Setter Property="Background" Value="#22FFFFFF" />
+			<Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+			<Setter Property="BorderThickness" Value="0" />
+			<Setter Property="CornerRadius" Value="6" />
+			<Setter Property="Padding" Value="12,0" />
+			<Setter Property="FontSize" Value="11.5" />
+		</Style>
+		<Style Selector="Button.BrowseButton:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="#33FFFFFF" />
+		</Style>
+
+		<!-- Ô đường dẫn thư mục game -->
+		<Style Selector="TextBox.PathTextBox">
+			<Setter Property="Background" Value="#1A1E29" />
+			<Setter Property="BorderBrush" Value="{StaticResource BorderBrush1}" />
+			<Setter Property="BorderThickness" Value="1" />
+			<Setter Property="CornerRadius" Value="6" />
+			<Setter Property="FontSize" Value="12" />
+			<Setter Property="Padding" Value="10,0" />
+			<Setter Property="VerticalContentAlignment" Value="Center" />
+		</Style>
+
+		<!-- Khung thẻ nhóm cài đặt (SettingsPage) -->
+		<Style Selector="Border.SettingCard">
+			<Setter Property="Background" Value="{StaticResource BgPanelBrush}" />
+			<Setter Property="BorderBrush" Value="{StaticResource BorderBrush1}" />
+			<Setter Property="BorderThickness" Value="1" />
+			<Setter Property="CornerRadius" Value="10" />
+			<Setter Property="Padding" Value="16" />
+			<Setter Property="Margin" Value="0,0,0,14" />
+		</Style>
+
+		<!-- Tiêu đề nhỏ in hoa (dùng ở SettingsPage, HomePage log header) -->
+		<Style Selector="TextBlock.SectionHeader">
+			<Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+			<Setter Property="FontSize" Value="11" />
+			<Setter Property="FontWeight" Value="SemiBold" />
+			<Setter Property="LetterSpacing" Value="0.5" />
+		</Style>
+	</Application.Styles>
+
+	<Application.Resources>
+		<!--
+			GHI CHÚ PORT: đây là bản rút gọn của ResourceDictionary màu trong App.xaml gốc (40K, WPF Style
+			Triggers). Avalonia dùng hệ Style/Selector khác hẳn WPF nên không convert máy móc được — bản
+			này giữ đúng bảng màu (giá trị hex y hệt bản gốc) để UI trông giống, nhưng style animation
+			chi tiết (hover, trigger) sẽ cần bổ sung dần, không phải trọng tâm của việc fix Linux.
+		-->
+		<SolidColorBrush x:Key="BgDarkBrush" Color="#171B26" />
+		<SolidColorBrush x:Key="BgPanelBrush" Color="#1E2330" />
+		<SolidColorBrush x:Key="AccentBrush" Color="#FF5A4A" />
+		<SolidColorBrush x:Key="SuccessBrush" Color="#4CC38A" />
+		<SolidColorBrush x:Key="WarnBrush" Color="#FFB454" />
+		<SolidColorBrush x:Key="TextPrimaryBrush" Color="#F0F1F5" />
+		<SolidColorBrush x:Key="TextMutedBrush" Color="#8A8F9E" />
+		<SolidColorBrush x:Key="BorderBrush1" Color="#2C3244" />
+
+		<x:Double x:Key="NavIndicatorWidth">40</x:Double>
+	</Application.Resources>
+
+</Application>

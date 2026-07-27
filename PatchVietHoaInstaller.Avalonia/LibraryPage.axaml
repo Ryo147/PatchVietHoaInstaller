@@ -1,0 +1,71 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:VietHoaInstaller"
+             xmlns:conv="using:VietHoaInstaller.Converters"
+             x:Class="VietHoaInstaller.LibraryPage"
+             FontFamily="Arial">
+	<UserControl.Resources>
+		<conv:BannerPathToImageConverter x:Key="BannerConverter"/>
+	</UserControl.Resources>
+
+	<Grid Margin="20,20,24,16" RowDefinitions="Auto,18,1,*">
+
+		<StackPanel Grid.Row="0">
+			<TextBlock Text="Danh sách Việt hóa"
+			           Foreground="{StaticResource TextPrimaryBrush}" FontSize="16" FontWeight="SemiBold"/>
+			<TextBlock x:Name="TxtProjectCount" Foreground="{StaticResource TextMutedBrush}" FontSize="11.5" Margin="0,3,0,0"/>
+		</StackPanel>
+
+		<Border Grid.Row="2" Background="{StaticResource BorderBrush1}"/>
+
+		<ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+			<ItemsControl x:Name="GameList">
+				<ItemsControl.ItemTemplate>
+					<DataTemplate x:DataType="local:GameListItem">
+						<!-- Hàng phẳng: không viền, không nền, không bóng — chỉ 1 đường kẻ mảnh phía dưới ngăn cách -->
+						<Border Classes="LibraryRow" Background="Transparent" Padding="0,12">
+							<Grid ColumnDefinitions="Auto,12,*,10,Auto,12,90">
+
+								<!-- Ảnh bìa -->
+								<Border Grid.Column="0" Width="52" Height="52" CornerRadius="6" Background="#2A2F42">
+									<Rectangle RadiusX="5" RadiusY="5">
+										<Rectangle.Fill>
+											<ImageBrush Source="{Binding BannerImagePath, Converter={StaticResource BannerConverter}}"
+											            Stretch="UniformToFill"/>
+										</Rectangle.Fill>
+									</Rectangle>
+								</Border>
+
+								<!-- Tên + trạng thái -->
+								<StackPanel Grid.Column="2" VerticalAlignment="Center">
+									<TextBlock Text="{Binding Name}" Foreground="{StaticResource TextPrimaryBrush}"
+									           FontSize="13.5" FontWeight="SemiBold"
+									           TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+									<StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+										<Ellipse Width="6" Height="6" Fill="{Binding StatusBrush}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+										<TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusBrush}" FontSize="11"
+										           TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+									</StackPanel>
+								</StackPanel>
+
+								<!-- Nhãn Khả dụng / Sắp ra mắt -->
+								<TextBlock Grid.Column="4" Text="{Binding BadgeText}" Foreground="{Binding StatusBrush}"
+								           FontSize="10.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+
+								<!-- Nút cài đặt -->
+								<Button Grid.Column="6" Content="Cài đặt" Classes="FlatCardButton"
+								        HorizontalAlignment="Stretch" VerticalAlignment="Center"
+								        IsEnabled="{Binding CanInstall}"
+								        Click="BtnInstallGame_Click" Tag="{Binding Profile}"/>
+
+								<!-- Đường kẻ phân dòng -->
+								<Border Grid.ColumnSpan="7" Height="1" Background="{StaticResource BorderBrush1}"
+								        VerticalAlignment="Bottom" Margin="0,0,0,-12"/>
+							</Grid>
+						</Border>
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+		</ScrollViewer>
+	</Grid>
+</UserControl>

@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<!-- Không còn "-windows": đây là điểm mấu chốt để chạy được trên Linux/macOS -->
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<AssemblyName>PatchVietHoaInstaller</AssemblyName>
+		<RootNamespace>VietHoaInstaller</RootNamespace>
+
+		<!-- Nguồn duy nhất khai báo version của app. Mỗi lần release, chỉ cần sửa số này ở đây -->
+		<Version>3.1.0</Version>
+
+		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+		<Company>PatchVietHoaInstaller</Company>
+		<Product>PatchVietHoaInstaller</Product>
+		<Title>PatchVietHoaInstaller</Title>
+
+		<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+	</PropertyGroup>
+
+	<!--
+		Build cho Windows (giữ hành vi self-contained/single-file như bản WPF cũ):
+		dotnet publish -r win-x64 -p:PublishSingleFile=true -p:SelfContained=true
+
+		Build cho Linux:
+		dotnet publish -r linux-x64 -p:PublishSingleFile=true -p:SelfContained=true
+
+		RuntimeIdentifier để trống ở đây, chỉ định lúc publish qua -r để 1 project build được cả 2 OS.
+	-->
+
+	<ItemGroup>
+		<PackageReference Include="Avalonia" Version="11.2.3" />
+		<PackageReference Include="Avalonia.Desktop" Version="11.2.3" />
+		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3" />
+		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3" />
+		<!-- Chỉ cần khi Debug/Designer preview -->
+		<PackageReference Include="Avalonia.Diagnostics" Version="11.2.3" Condition="'$(Configuration)' == 'Debug'" />
+		<!-- Cần package này vì TargetFramework không còn "-windows": Registry API chỉ thật sự chạy
+		     trên Windows (được guard bằng RuntimeInformation.IsOSPlatform trong SteamLocatorService),
+		     nhưng vẫn cần package để build được trên mọi OS. -->
+		<PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Remove="Assets\PlagueIncVH.jpg" />
+		<None Remove="Assets\RE2_DX11.png" />
+		<None Remove="Assets\Dich2000sICON.ico" />
+		<AvaloniaResource Include="Assets\PlagueIncVH.jpg" />
+		<AvaloniaResource Include="Assets\RE2_DX11.png" />
+		<AvaloniaResource Include="Assets\Dich2000sICON.ico" />
+	</ItemGroup>
+
+</Project>

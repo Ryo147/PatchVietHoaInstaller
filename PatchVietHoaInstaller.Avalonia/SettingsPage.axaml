@@ -1,0 +1,131 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="VietHoaInstaller.SettingsPage"
+             FontFamily="Arial">
+	<ScrollViewer VerticalScrollBarVisibility="Auto">
+		<StackPanel Margin="20,20,24,16">
+
+			<TextBlock Text="Cài đặt phần mềm" Foreground="{StaticResource TextPrimaryBrush}" FontSize="18" FontWeight="Bold" Margin="0,0,0,16"/>
+
+			<!-- ===== NHÓM: CẬP NHẬT ===== -->
+			<Border Classes="SettingCard">
+				<StackPanel>
+					<TextBlock Text="CẬP NHẬT" Classes="SectionHeader" Margin="0,0,0,12"/>
+					<Grid ColumnDefinitions="*,Auto">
+						<StackPanel Grid.Column="0">
+							<TextBlock Text="Tự động kiểm tra cập nhật" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+							<TextBlock Text="Kiểm tra bản mới mỗi khi mở phần mềm" Foreground="{StaticResource TextMutedBrush}" FontSize="11" Margin="0,3,0,0"/>
+						</StackPanel>
+						<ToggleSwitch Grid.Column="1" x:Name="ChkAutoUpdate" OnContent="" OffContent="" VerticalAlignment="Center" IsCheckedChanged="ChkAutoUpdate_Changed"/>
+					</Grid>
+				</StackPanel>
+			</Border>
+
+			<!-- ===== NHÓM: KHAY HỆ THỐNG (TRAY) ===== -->
+			<Border Classes="SettingCard">
+				<StackPanel>
+					<TextBlock Text="KHAY HỆ THỐNG" Classes="SectionHeader" Margin="0,0,0,12"/>
+
+					<Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+						<StackPanel Grid.Column="0">
+							<TextBlock Text="Thu nhỏ xuống khay hệ thống khi đóng" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+							<TextBlock Text="Bấm nút X sẽ ẩn phần mềm xuống khay thay đóng phần mềm" Foreground="{StaticResource TextMutedBrush}" FontSize="11" Margin="0,3,0,0"/>
+						</StackPanel>
+						<ToggleSwitch Grid.Column="1" x:Name="ChkMinimizeToTray" OnContent="" OffContent="" VerticalAlignment="Center" IsCheckedChanged="ChkMinimizeToTray_Changed"/>
+					</Grid>
+
+					<Border Height="1" Background="{StaticResource BorderBrush1}" Margin="0,4"/>
+
+					<Grid ColumnDefinitions="*,Auto" Margin="0,12,0,12">
+						<StackPanel Grid.Column="0">
+							<TextBlock Text="Tự động kiểm tra bản Patch Việt Hóa mới" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+							<TextBlock Text="Chạy ngầm và báo qua khay hệ thống khi có bản Patch mới" Foreground="{StaticResource TextMutedBrush}" FontSize="11" Margin="0,3,0,0"/>
+						</StackPanel>
+						<ToggleSwitch Grid.Column="1" x:Name="ChkAutoCheckPatch" OnContent="" OffContent="" VerticalAlignment="Center" IsCheckedChanged="ChkAutoCheckPatch_Changed"/>
+					</Grid>
+
+					<Border Height="1" Background="{StaticResource BorderBrush1}" Margin="0,4"/>
+
+					<Grid ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+						<StackPanel Grid.Column="0">
+							<TextBlock Text="Thời gian kiểm tra (phút)" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+							<TextBlock Text="Tối thiểu 15 phút để tránh bị GitHub giới hạn request" Foreground="{StaticResource TextMutedBrush}" FontSize="11" Margin="0,3,0,0"/>
+						</StackPanel>
+
+						<Border Grid.Column="1" Background="#FF2C3244" CornerRadius="6" Height="24" Width="45" VerticalAlignment="Center">
+							<TextBox x:Name="TxtPatchCheckInterval" Width="40" VerticalAlignment="Center"
+							         HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+							         LostFocus="TxtPatchCheckInterval_LostFocus" Background="#FF2C3244" Text="15"
+							         Foreground="White" BorderThickness="0" Height="20"/>
+						</Border>
+					</Grid>
+				</StackPanel>
+			</Border>
+
+			<!-- ===== NHÓM: CÀI ĐẶT & GỠ VIỆT HÓA ===== -->
+			<Border Classes="SettingCard">
+				<StackPanel>
+					<TextBlock Text="CÀI ĐẶT &amp; GỠ VIỆT HÓA" Classes="SectionHeader" Margin="0,0,0,12"/>
+
+					<Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+						<StackPanel Grid.Column="0">
+							<TextBlock Text="Xác nhận trước khi Gỡ Việt hóa" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+							<TextBlock Text="Hiện thông báo hỏi lại trước khi gỡ" Foreground="{StaticResource TextMutedBrush}" FontSize="11" Margin="0,3,0,0"/>
+						</StackPanel>
+						<ToggleSwitch Grid.Column="1" x:Name="ChkConfirmUninstall" OnContent="" OffContent="" VerticalAlignment="Center" IsCheckedChanged="ChkConfirmUninstall_Changed"/>
+					</Grid>
+
+					<Border Height="1" Background="{StaticResource BorderBrush1}" Margin="0,4"/>
+
+					<Grid ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+						<StackPanel Grid.Column="0">
+							<TextBlock Text="Tự động mở thư mục game sau khi cài xong" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+							<TextBlock Text="Mở trình quản lý file ngay khi cài đặt hoàn tất" Foreground="{StaticResource TextMutedBrush}" FontSize="11" Margin="0,3,0,0"/>
+						</StackPanel>
+						<ToggleSwitch Grid.Column="1" x:Name="ChkAutoOpenFolder" OnContent="" OffContent="" VerticalAlignment="Center" IsCheckedChanged="ChkAutoOpenFolder_Changed"/>
+					</Grid>
+				</StackPanel>
+			</Border>
+
+			<!-- ===== NHÓM: CỬA SỔ ỨNG DỤNG ===== -->
+			<Border Classes="SettingCard">
+				<StackPanel>
+					<TextBlock Text="HIỂN THỊ PHẦN MỀM" Classes="SectionHeader" Margin="0,0,0,12"/>
+					<Grid ColumnDefinitions="*,Auto">
+						<StackPanel Grid.Column="0">
+							<TextBlock Text="Luôn hiển thị phần mềm trên cùng" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+							<TextBlock Text="Giữ phần mềm luôn nổi trên các phần mềm khác" Foreground="{StaticResource TextMutedBrush}" FontSize="11" Margin="0,3,0,0"/>
+						</StackPanel>
+						<ToggleSwitch Grid.Column="1" x:Name="ChkAlwaysOnTop" OnContent="" OffContent="" VerticalAlignment="Center" IsCheckedChanged="ChkAlwaysOnTop_Changed"/>
+					</Grid>
+				</StackPanel>
+			</Border>
+
+			<!-- ===== NHÓM: DỮ LIỆU ===== -->
+			<Border Classes="SettingCard">
+				<StackPanel>
+					<TextBlock Text="DỮ LIỆU" Classes="SectionHeader" Margin="0,0,0,12"/>
+
+					<Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+						<StackPanel Grid.Column="0">
+							<TextBlock Text="Thư mục game đã ghi nhớ" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+							<TextBlock x:Name="TxtRememberedFolder" Text="(chưa có)" Foreground="{StaticResource TextMutedBrush}" FontSize="11" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+						</StackPanel>
+						<Button Grid.Column="1" Content="Xóa" Classes="FlatCardButton" VerticalAlignment="Center" Click="BtnClearFolder_Click"/>
+					</Grid>
+
+					<Border Height="1" Background="{StaticResource BorderBrush1}" Margin="0,4"/>
+
+					<Grid ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+						<StackPanel Grid.Column="0">
+							<TextBlock Text="Nhật ký hoạt động ở Trang chủ" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+							<TextBlock Text="Xóa toàn bộ nhật ký đã ghi trong phiên này" Foreground="{StaticResource TextMutedBrush}" FontSize="11" Margin="0,3,0,0"/>
+						</StackPanel>
+						<Button Grid.Column="1" Content="Xóa" Classes="FlatCardButton" VerticalAlignment="Center" Click="BtnClearLog_Click"/>
+					</Grid>
+				</StackPanel>
+			</Border>
+
+		</StackPanel>
+	</ScrollViewer>
+</UserControl>

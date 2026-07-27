@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="VietHoaInstaller.UpdatesPage"
+             FontFamily="Arial">
+	<Grid Margin="20,20,24,16" RowDefinitions="Auto,18,1,18,Auto,10,Auto,14,Auto,*">
+
+		<TextBlock Grid.Row="0" Text="Cập nhật phần mềm"
+		           Foreground="{StaticResource TextPrimaryBrush}" FontSize="16" FontWeight="SemiBold"/>
+
+		<Border Grid.Row="2" Height="1" Background="{StaticResource BorderBrush1}"/>
+
+		<TextBlock Grid.Row="4" x:Name="TxtCurrentVersion" Foreground="{StaticResource TextMutedBrush}" FontSize="12"/>
+
+		<StackPanel Grid.Row="6" Orientation="Horizontal">
+			<Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource TextMutedBrush}"
+			         Margin="0,0,7,0" VerticalAlignment="Center"/>
+			<TextBlock x:Name="TxtLatestStatus" Text="Đang kiểm tra bản cập nhật..."
+			           Foreground="{StaticResource TextPrimaryBrush}" FontSize="13" FontWeight="SemiBold"
+			           VerticalAlignment="Center"/>
+		</StackPanel>
+
+		<StackPanel Grid.Row="8">
+			<TextBlock x:Name="TxtChangelog" Foreground="{StaticResource TextMutedBrush}"
+			           FontSize="12" TextWrapping="Wrap" Text="" IsVisible="False" MaxHeight="90"/>
+
+			<StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+				<Button x:Name="BtnUpdateNow" Content="Cập nhật ngay"
+				        Classes="PrimaryButton" Click="BtnUpdateNow_Click"
+				        IsVisible="False" Padding="16,8"/>
+				<Button x:Name="TxtOpenReleaseLink" Content="Mở trên GitHub" Classes="LinkButton"
+				        Margin="12,0,0,0" VerticalAlignment="Center" IsVisible="False" Click="BtnOpenRelease_Click"/>
+			</StackPanel>
+		</StackPanel>
+	</Grid>
+</UserControl>

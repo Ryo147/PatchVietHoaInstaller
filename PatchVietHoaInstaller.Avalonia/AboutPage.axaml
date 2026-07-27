@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="VietHoaInstaller.AboutPage"
+             FontFamily="Arial" Width="457">
+	<Grid Margin="20,20,24,16">
+		<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="400" Width="400">
+			<Border Width="84" Height="84" CornerRadius="42" Background="#26FF5A4A" HorizontalAlignment="Center">
+				<Image Source="avares://VietHoaInstaller.Avalonia/Assets/Dich2000sICON.ico" Width="44" Height="44"
+				       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+			</Border>
+
+			<TextBlock Text="Phần mềm cài đặt Việt hóa" Foreground="{StaticResource TextPrimaryBrush}"
+			           FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+
+			<TextBlock x:Name="TxtVersionGroup" Foreground="{StaticResource TextMutedBrush}" FontSize="11.5"
+			           HorizontalAlignment="Center" Margin="0,4,0,0"/>
+
+			<TextBlock Text="Phần mềm miễn phí giúp cài đặt các bản Việt hóa game do nhóm Dịch 2000s thực hiện. Mọi khoản phí được yêu cầu để lấy phần mềm này đều là lừa đảo."
+			           Foreground="{StaticResource TextMutedBrush}" FontSize="11.5" TextWrapping="Wrap"
+			           TextAlignment="Center" HorizontalAlignment="Center" Margin="0,12,0,0" Width="403"/>
+
+			<!--
+				GHI CHÚ PORT: Avalonia không có sẵn <Hyperlink> lồng trong TextBlock như WPF. Thay bằng
+				Button style "link" (nền trong suốt, chữ có gạch chân, không viền) — hành vi tương đương,
+				chạy được trên mọi OS.
+			-->
+			<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0" Spacing="10">
+				<Button Classes="LinkButton" Content="Discord" Click="Link_Discord_Click"/>
+				<Button Classes="LinkButton" Content="Facebook" Click="Link_Facebook_Click"/>
+				<Button Classes="LinkButton" Content="GitHub" Click="Link_GitHub_Click"/>
+				<Button Classes="LinkButton" Content="Báo lỗi" Click="Link_ReportBug_Click"/>
+			</StackPanel>
+		</StackPanel>
+	</Grid>
+</UserControl>
