@@ -12,3 +12,5 @@
 /Properties/PublishProfiles/FolderProfile.pubxml
 /bin/Release/net10.0-windows/win-x64
 /.gitignore
+/PatchVietHoaInstaller.Avalonia/obj/Debug/net10.0
+/PatchVietHoaInstaller.Avalonia/obj/Release/net10.0
