@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -120,19 +121,36 @@ namespace VietHoaInstaller.Services
             if (release.Assets.Count == 0)
                 return null;
 
-            if (!string.IsNullOrWhiteSpace(nameContains))
-            {
-                var match = release.Assets.Find(a =>
-                    a.Name.Contains(nameContains, StringComparison.OrdinalIgnoreCase));
-                if (match != null)
-                    return match;
-            }
+            List<GitHubReleaseAsset> matches = string.IsNullOrWhiteSpace(nameContains)
+                ? release.Assets
+                : release.Assets.FindAll(a => a.Name.Contains(nameContains, StringComparison.OrdinalIgnoreCase));
 
-            // Chỉ fallback về asset đầu tiên khi release CHỈ CÓ ĐÚNG 1 file — an toàn cho trường hợp
-            // 1 game = 1 release. Nếu release có nhiều asset (kiểu gộp N game chung 1 release) mà không
-            // khớp tên nào, TRẢ VỀ NULL thay vì đoán bừa — tránh cài nhầm patch của game khác.
+            if (matches.Count > 0)
+                return PickNewest(matches);
+
+            // Không khớp tên nào & release chỉ có đúng 1 asset -> giữ hành vi cũ (an toàn cho 1 game = 1 release)
             return release.Assets.Count == 1 ? release.Assets[0] : null;
         }
+
+        private static GitHubReleaseAsset PickNewest(List<GitHubReleaseAsset> matches)
+        {
+            GitHubReleaseAsset best = matches[0];
+            Version? bestVersion = ParseVersionOrNull(ExtractVersionFromAssetName(best.Name));
+
+            for (int i = 1; i < matches.Count; i++)
+            {
+                var candidateVersion = ParseVersionOrNull(ExtractVersionFromAssetName(matches[i].Name));
+                if (candidateVersion != null && (bestVersion == null || candidateVersion > bestVersion))
+                {
+                    best = matches[i];
+                    bestVersion = candidateVersion;
+                }
+            }
+            return best;
+        }
+
+        private static Version? ParseVersionOrNull(string? versionStr)
+            => versionStr != null && Version.TryParse(versionStr, out var v) ? v : null;
 
         /// <summary>Tách phần hash hex ra khỏi chuỗi digest dạng "sha256:abcdef..." của GitHub. Trả về null nếu không có.</summary>
         public static string? ExtractSha256Hex(string? digest)

@@ -84,6 +84,7 @@ namespace VietHoaInstaller
             _installer.GitHubRepo = profile.GitHubRepo;
             _installer.GitHubReleaseTag = profile.GitHubReleaseTag;
             _installer.AssetNameContains = profile.AssetNameContains;
+            _installer.KnownPatchVersion = profile.KnownPatchVersion;
 
             if (string.IsNullOrWhiteSpace(profile.ApplicableGameVersion))
             {

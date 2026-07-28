@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -111,6 +112,9 @@ namespace VietHoaInstaller.Services
 
         /// <summary>
         /// Trong các asset của release, tìm asset khớp tên chứa <paramref name="nameContains"/> (không phân biệt hoa thường).
+        /// QUÉT TOÀN BỘ asset khớp tên (không dừng ở cái đầu tiên) — nếu có nhiều hơn 1 asset cùng khớp
+        /// (vd lỡ up nhầm 2 bản version cùng lúc trong 1 release), chọn asset có VERSION CAO NHẤT tách
+        /// được từ tên file, KHÔNG lấy theo thứ tự xuất hiện trong JSON (thứ tự đó không đảm bảo là mới nhất).
         /// Nếu release chỉ có đúng 1 asset, trả về asset đó luôn (không cần khớp tên). Nếu release có
         /// NHIỀU asset (vd gộp chung nhiều game) mà không khớp tên nào, trả về null — để nơi gọi tự
         /// rơi về link hardcode đúng game, tránh lấy nhầm file của game khác.
@@ -122,10 +126,33 @@ namespace VietHoaInstaller.Services
 
             if (!string.IsNullOrWhiteSpace(nameContains))
             {
-                var match = release.Assets.Find(a =>
-                    a.Name.Contains(nameContains, StringComparison.OrdinalIgnoreCase));
-                if (match != null)
-                    return match;
+                var matches = release.Assets
+                    .Where(a => a.Name.Contains(nameContains, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (matches.Count == 1)
+                    return matches[0];
+
+                if (matches.Count > 1)
+                {
+                    GitHubReleaseAsset best = matches[0];
+                    string? bestVersion = ExtractVersionFromAssetName(best.Name);
+
+                    foreach (var candidate in matches.Skip(1))
+                    {
+                        string? candidateVersion = ExtractVersionFromAssetName(candidate.Name);
+                        if (string.IsNullOrWhiteSpace(candidateVersion))
+                            continue; // không tách được version từ tên -> không đủ căn cứ để so, bỏ qua ứng viên này
+
+                        if (string.IsNullOrWhiteSpace(bestVersion) || IsNewerVersion(bestVersion, candidateVersion))
+                        {
+                            best = candidate;
+                            bestVersion = candidateVersion;
+                        }
+                    }
+
+                    return best;
+                }
             }
 
             // Chỉ fallback về asset đầu tiên khi release CHỈ CÓ ĐÚNG 1 file — an toàn cho trường hợp

@@ -60,13 +60,49 @@ namespace VietHoaInstaller.Services
         public string GitHubReleaseTag { get; set; } = "";
         public string AssetNameContains { get; set; } = "";
 
+        /// <summary>Baseline version dùng làm fallback khi API lỗi/không tìm được asset khớp lúc cài — copy từ GameProfile.KnownPatchVersion.</summary>
+        public string KnownPatchVersion { get; set; } = "";
+
         public List<string> RequiredGameFiles { get; set; } = new()
             {
                 Path.Combine("PlagueIncEvolved_Data", "resources.assets"),
                 Path.Combine("PlagueIncEvolved_Data", "sharedassets0.assets")
             };
-        private string GetBackupFolder(string gameFolder) => Path.Combine(gameFolder, BackupFolderName);
-        private string GetManifestPath(string gameFolder) => Path.Combine(GetBackupFolder(gameFolder), ManifestFileName);
+        private static string GetBackupFolder(string gameFolder) => Path.Combine(gameFolder, BackupFolderName);
+        private static string GetManifestPath(string gameFolder) => Path.Combine(GetBackupFolder(gameFolder), ManifestFileName);
+
+        /// <summary>
+        /// Đọc version patch THỰC SỰ đã cài vào thư mục này (ghi lại lúc InstallAsync thành công), không phụ thuộc
+        /// vào KnownPatchVersion hardcode trong app. Dùng cho update-checker để biết chính xác máy này đang có
+        /// bản nào, thay vì đoán qua giá trị compile-time. Trả về "" nếu chưa cài / không đọc được manifest.
+        /// </summary>
+        public static string TryGetInstalledPatchVersion(string gameFolder, string? expectedProfileName = null)
+        {
+            if (string.IsNullOrWhiteSpace(gameFolder)) return "";
+            var path = GetManifestPath(gameFolder);
+            if (!File.Exists(path)) return "";
+
+            try
+            {
+                var json = File.ReadAllText(path);
+                var manifest = JsonSerializer.Deserialize<InstallManifest>(json);
+                if (manifest == null) return "";
+
+                // Nếu có chỉ định profile mong đợi, tránh đọc nhầm version của 1 game khác từng cài ở cùng thư mục này.
+                if (!string.IsNullOrWhiteSpace(expectedProfileName) &&
+                    !string.IsNullOrWhiteSpace(manifest.ProfileName) &&
+                    manifest.ProfileName != expectedProfileName)
+                {
+                    return "";
+                }
+
+                return manifest.PatchVersion ?? "";
+            }
+            catch
+            {
+                return "";
+            }
+        }
 
         private static readonly string[] AllowedDownloadHosts =
         {
@@ -181,6 +217,7 @@ namespace VietHoaInstaller.Services
             try
             {
                 string downloadUrl = PatchDownloadUrl;
+                string installedVersion = KnownPatchVersion; // fallback nếu API lỗi/không match asset
                 if (!string.IsNullOrWhiteSpace(GitHubOwner) && !string.IsNullOrWhiteSpace(GitHubRepo))
                 {
                     progress.Report(new InstallProgress(0, "Đang kiểm tra bản patch mới nhất..."));
@@ -193,9 +230,15 @@ namespace VietHoaInstaller.Services
                         string? autoHash = GitHubReleaseService.ExtractSha256Hex(asset.Digest);
                         if (autoHash != null)
                         {
-                            ExpectedHash = autoHash;
+                            ExpectedHash = NormalizeHash(autoHash);
                             HashAlgorithmName = "SHA256";
                         }
+
+                        // Version thật của file sắp cài, tách từ chính tên asset — đây mới là "sự thật" cần lưu lại,
+                        // không phải KnownPatchVersion hardcode (thứ chỉ đại diện cho lúc app được build).
+                        string? assetVersion = GitHubReleaseService.ExtractVersionFromAssetName(asset.Name);
+                        if (!string.IsNullOrWhiteSpace(assetVersion))
+                            installedVersion = assetVersion;
                     }
                 }
 
@@ -210,6 +253,7 @@ namespace VietHoaInstaller.Services
                 InstallManifest manifest = InstallMode == GameInstallMode.CopyToModFolder
                     ? CopyToModFolder(gameFolder, extractDir, progress)
                     : OverwriteGameFiles(gameFolder, extractDir, progress);
+                manifest.PatchVersion = installedVersion;
 
                 Directory.CreateDirectory(GetBackupFolder(gameFolder));
                 File.WriteAllText(
@@ -585,10 +629,21 @@ namespace VietHoaInstaller.Services
                 if (!valid)
                 {
                     try { File.Delete(destinationPath); } catch { }
-                    throw new InvalidOperationException(
-                        "File patch tải về bị lỗi hoặc không toàn vẹn (sai hash). Vui lòng thử cài đặt lại.");
+                    throw new IOException(
+                                    "File patch tải về bị lỗi hoặc không toàn vẹn (sai hash). Vui lòng thử cài đặt lại.");
                 }
             }
+        }
+        private static string NormalizeHash(string hash)
+        {
+            if (string.IsNullOrWhiteSpace(hash)) return "";
+            string trimmed = hash.Trim();
+
+            int colonIdx = trimmed.IndexOf(':');
+            if (colonIdx >= 0 && colonIdx < trimmed.Length - 1)
+                trimmed = trimmed[(colonIdx + 1)..];
+
+            return trimmed.Trim();
         }
 
         private async Task<bool> VerifyHashAsync(string filePath)
@@ -604,7 +659,7 @@ namespace VietHoaInstaller.Services
             byte[] hashBytes = await hasher.ComputeHashAsync(stream, CancellationToken.None);
             string actualHash = Convert.ToHexString(hashBytes);
 
-            return actualHash.Equals(ExpectedHash, StringComparison.OrdinalIgnoreCase);
+            return NormalizeHash(actualHash).Equals(NormalizeHash(ExpectedHash), StringComparison.OrdinalIgnoreCase);
         }
     }
 }

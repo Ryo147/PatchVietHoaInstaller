@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using System;
+using VietHoaInstaller.Services;
 
 namespace VietHoaInstaller
 {
@@ -98,6 +99,8 @@ namespace VietHoaInstaller
         /// dùng ToolTipText cập nhật tạm thời làm phương án thay thế đơn giản, tương thích cả 3 OS.</summary>
         public static void ShowTrayNotification(string title, string message)
         {
+            if (OperatingSystem.IsWindows() && WindowsBalloonNotifier.Show(title, message))
+                return;
             if (TrayIconInstance == null) return;
             TrayIconInstance.ToolTipText = $"{title}\n{message}";
         }

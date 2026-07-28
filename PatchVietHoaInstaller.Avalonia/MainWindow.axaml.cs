@@ -11,14 +11,6 @@ using VietHoaInstaller.Services;
 
 namespace VietHoaInstaller
 {
-    /// <summary>
-    /// Shell của ứng dụng: chỉ còn title bar, banner cập nhật, thanh điều hướng và vùng hiển thị trang
-    /// hiện tại. Toàn bộ logic cài đặt/gỡ Việt hóa nằm ở HomePage.
-    ///
-    /// GHI CHÚ PORT: khác với bản WPF gốc, tray icon (Avalonia.Controls.TrayIcon) được khởi tạo ở cấp
-    /// Application (App.axaml.cs) chứ không phải ở đây, vì Avalonia coi tray icon thuộc Application chứ
-    /// không thuộc 1 Window cụ thể. MainWindow chỉ subscribe vào 3 sự kiện tĩnh App expose ra.
-    /// </summary>
     public partial class MainWindow : Window
     {
         private static string AppVersion =>
@@ -70,6 +62,7 @@ namespace VietHoaInstaller
         {
             Dispatcher.UIThread.Post(() =>
             {
+                _ = CheckForPatchUpdatesAsync(showBalloonIfFound: true, forceToastIfNone: true);
                 Show();
                 WindowState = WindowState.Normal;
                 Activate();
@@ -107,6 +100,7 @@ namespace VietHoaInstaller
         /// không cần khởi động lại app.</summary>
         private void RestartPatchUpdateTimer()
         {
+            _patchCheckTimer.Tick += async (_, _) => await CheckForPatchUpdatesAsync(showBalloonIfFound: true, forceToastIfNone: true);
             _patchCheckTimer?.Stop();
             _patchCheckTimer = null;
             StartPatchUpdateTimer();
@@ -117,29 +111,49 @@ namespace VietHoaInstaller
             var settings = SettingsManager.Load();
             if (!settings.AutoCheckPatchUpdate && !forceToastIfNone) return;
 
-            var updates = await PatchUpdateCheckerService.CheckAllAsync(Models.GameCatalog.All);
+            // Kiến trúc hiện tại chỉ lưu 1 "thư mục game gần nhất" dùng chung cho mọi profile
+            // (AppSettings.LastGameFolder). TryGetInstalledPatchVersion tự kiểm tra ProfileName trong
+            // manifest nên nếu thư mục này không phải của đúng game, nó sẽ trả về "" một cách an toàn
+            // (rơi về KnownPatchVersion) thay vì đọc nhầm version của game khác.
+            var checkResult = await PatchUpdateCheckerService.CheckAllAsync(
+                Models.GameCatalog.All,
+                resolveGameFolder: _ => settings.LastGameFolder);
+            var updates = checkResult.Updates;
 
-            var freshUpdates = updates.Where(u =>
-                !settings.LastNotifiedPatchVersions.TryGetValue(u.Profile.Name, out var notified) ||
-                notified != u.NewVersion).ToList();
-
-            if (freshUpdates.Count > 0)
+            if (updates.Count > 0)
             {
                 NavUpdateDot.IsVisible = true; // tận dụng chấm đỏ có sẵn ở nút "Cập nhật"
 
-                foreach (var u in freshUpdates)
+                // LastNotifiedPatchVersions chỉ dùng để tránh SPAM tray-balloon lặp lại từ timer chạy nền
+                // cho cùng 1 bản đã báo rồi — KHÔNG được dùng để quyết định "có bản mới hay không". Kiểm tra
+                // thủ công (forceToastIfNone) luôn phải trả lời đúng sự thật, bất kể đã từng thông báo chưa.
+                bool alreadyNotifiedAll = updates.All(u =>
+                    settings.LastNotifiedPatchVersions.TryGetValue(u.Profile.Name, out var notified) &&
+                    notified == u.NewVersion);
+                bool shouldShowBalloon = forceToastIfNone || !alreadyNotifiedAll;
+
+                foreach (var u in updates)
                     settings.LastNotifiedPatchVersions[u.Profile.Name] = u.NewVersion;
                 SettingsManager.Save(settings);
 
-                if (showBalloonIfFound)
+                if (showBalloonIfFound && shouldShowBalloon)
                 {
-                    string names = string.Join(", ", freshUpdates.Select(u => $"{u.Profile.Name} (v{u.NewVersion})"));
+                    string names = string.Join(", ", updates.Select(u => $"{u.Profile.Name} (v{u.NewVersion})"));
                     App.ShowTrayNotification("Có bản Patch Việt Hóa mới", $"Đã có bản cập nhật cho: {names}. Mở app để tải về.");
                 }
             }
             else if (forceToastIfNone)
             {
-                App.ShowTrayNotification("Kiểm tra bản Patch", "Chưa có bản Patch mới nào.");
+                if (checkResult.AnyCheckFailed)
+                {
+                    // Khác hẳn "chưa có bản mới" — đây là app KHÔNG hỏi được GitHub (rate-limit/mất mạng/config sai).
+                    App.ShowTrayNotification("Không kiểm tra được bản Patch",
+                        "Không kết nối được tới GitHub lúc này (có thể do mất mạng hoặc giới hạn request). Vui lòng thử lại sau ít phút.");
+                }
+                else
+                {
+                    App.ShowTrayNotification("Kiểm tra bản Patch", "Chưa có bản Patch mới nào.");
+                }
             }
         }
 
