@@ -9,7 +9,7 @@
 		<RootNamespace>PatchVietHoaInstaller</RootNamespace>
 
 		<!-- Nguồn duy nhất khai báo version của app. Mỗi lần release, chỉ cần sửa số này ở đây -->
-		<Version>4.2.0</Version>
+		<Version>4.2.0.1</Version>
 
 		<!-- Prevent duplicate assembly attributes -->
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
