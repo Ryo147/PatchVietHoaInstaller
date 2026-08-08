@@ -19,3 +19,8 @@
 /tools/obj
 /tools/bin
 /.vscode
+tools/OptimizeBanner/obj/Debug/net8.0/.NETCoreApp,Version=v8.0.AssemblyAttributes.cs
+tools/OptimizeBanner/obj/Debug/net8.0/OptimizeBanner.AssemblyInfo.cs
+tools/OptimizeBanner/obj/Debug/net8.0/OptimizeBanner.AssemblyInfoInputs.cache
+tools/OptimizeBanner/obj/Debug/net8.0/OptimizeBanner.GeneratedMSBuildEditorConfig.editorconfig
+tools/OptimizeBanner/obj/Debug/net8.0/OptimizeBanner.GlobalUsings.g.cs
