@@ -30,7 +30,7 @@
 								<TranslateTransform X="0">
 									<TranslateTransform.Transitions>
 										<Transitions>
-											<DoubleTransition Property="X" Duration="0:0:0.24"/>
+											<DoubleTransition Property="X" Duration="0:0:0.24" Easing="CubicEaseOut"/>
 										</Transitions>
 									</TranslateTransform.Transitions>
 								</TranslateTransform>
@@ -87,14 +87,14 @@
 						<TranslateTransform Y="0">
 							<TranslateTransform.Transitions>
 								<Transitions>
-									<DoubleTransition Property="Y" Duration="0:0:0.22"/>
+									<DoubleTransition Property="Y" Duration="0:0:0.22" Easing="CubicEaseOut"/>
 								</Transitions>
 							</TranslateTransform.Transitions>
 						</TranslateTransform>
 					</ContentControl.RenderTransform>
 					<ContentControl.Transitions>
 						<Transitions>
-							<DoubleTransition Property="Opacity" Duration="0:0:0.22"/>
+							<DoubleTransition Property="Opacity" Duration="0:0:0.22" Easing="CubicEaseOut"/>
 						</Transitions>
 					</ContentControl.Transitions>
 				</ContentControl>

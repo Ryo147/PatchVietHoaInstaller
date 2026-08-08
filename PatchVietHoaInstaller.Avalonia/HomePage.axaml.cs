@@ -33,6 +33,11 @@ namespace VietHoaInstaller
         private CancellationTokenSource? _cts;
         private GameProfile? _selectedProfile;
 
+        // Đếm số lần UpdateBanner() được gọi -> chặn race condition khi người dùng đổi game liên tục:
+        // lệnh decode ảnh CŨ (đang chạy nền) có thể hoàn thành SAU lệnh MỚI, nếu không chặn sẽ đè banner
+        // đúng bằng banner sai (của game trước). Xem cách dùng trong UpdateBanner().
+        private int _bannerRequestId;
+
         public HomePage()
         {
             InitializeComponent();
@@ -590,17 +595,38 @@ namespace VietHoaInstaller
             }
         }
 
+        // Banner rộng ~700px logic (cửa sổ 720px, CanResize="False"), x2.5 để dư dả cho màn hình HiDPI.
+        // Ảnh nguồn 2K/4K decode thẳng full-res rồi mới co lại lúc render sẽ rất nặng CPU/RAM và gây
+        // giật khung hình animation — decode thẳng xuống kích thước này nhẹ hơn nhiều lần.
+        private const int BannerDecodeTargetWidth = 1800;
+
         /// <summary>Đổi ảnh banner theo game đang chọn. Nếu thiếu đường dẫn hoặc ảnh lỗi thì giữ nguyên ảnh cũ, không crash app.</summary>
-        private void UpdateBanner(string bannerImagePath)
+        private async void UpdateBanner(string bannerImagePath)
         {
             if (string.IsNullOrWhiteSpace(bannerImagePath))
                 return;
 
+            // "Vé số thứ tự" cho lần gọi này -> nếu có lệnh MỚI hơn gọi vào trong lúc đang decode nền,
+            // lệnh CŨ này phải tự biết mình đã lỗi thời và không được ghi đè banner nữa (xem check bên dưới).
+            int requestId = ++_bannerRequestId;
+
             try
             {
                 var uri = new Uri(bannerImagePath, UriKind.Absolute);
-                using var stream = AssetLoader.Open(uri);
-                var bitmap = new Bitmap(stream);
+
+                // Decode ở background thread: dù đã decode xuống kích thước nhỏ hơn, ảnh nguồn 2K/4K vẫn
+                // tốn vài chục ms để giải mã — chạy trên UI thread sẽ làm animation chuyển trang/banner
+                // đang chạy song song bị khựng lại giữa chừng (giật). Task.Run đẩy việc decode ra khỏi
+                // UI thread, chỉ quay lại UI thread để gán Source sau khi đã có bitmap sẵn sàng.
+                var bitmap = await Task.Run(() =>
+                {
+                    using var stream = AssetLoader.Open(uri);
+                    return Bitmap.DecodeToWidth(stream, BannerDecodeTargetWidth);
+                });
+
+                // Trong lúc chờ decode, người dùng đã bấm sang game khác -> bỏ kết quả này, không ghi đè.
+                if (requestId != _bannerRequestId)
+                    return;
 
                 ((ImageBrush)BannerBorder.Background!).Source = bitmap;
 

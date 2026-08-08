@@ -40,12 +40,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Remove="Assets\PlagueIncVH.jpg" />
-		<None Remove="Assets\RE2_DX11.png" />
-		<None Remove="Assets\Dich2000sICON.ico" />
-		<AvaloniaResource Include="Assets\PlagueIncVH.jpg" />
-		<AvaloniaResource Include="Assets\RE2_DX11.png" />
-		<AvaloniaResource Include="Assets\Dich2000sICON.ico" />
+		<None Remove="Assets\**" />
+		<AvaloniaResource Include="Assets\**" />
 	</ItemGroup>
 
 </Project>

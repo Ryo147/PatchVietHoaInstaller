@@ -25,6 +25,12 @@ namespace VietHoaInstaller
         private readonly AboutPage _aboutPage = new();
         private DispatcherTimer? _patchCheckTimer;
         private bool _isExitingForReal = false;
+        private CancellationTokenSource? _pageTransitionCts;
+
+        // Lưu lại 2 collection Transitions khai báo sẵn trong XAML (chỉ đọc 1 lần) để có thể tắt/bật
+        // tạm thời trong SetPage() — xem ghi chú chi tiết trong SetPage().
+        private Avalonia.Animation.Transitions? _contentOpacityTransitions;
+        private Avalonia.Animation.Transitions? _contentTransformTransitions;
 
         public MainWindow()
         {
@@ -217,16 +223,43 @@ namespace VietHoaInstaller
         /// <summary>Đổi trang kèm hiệu ứng mờ dần + trượt nhẹ từ dưới lên (Transition khai báo trong XAML).</summary>
         private void SetPage(UserControl page)
         {
-            ((TranslateTransform)MainContent.RenderTransform!).Y = 10;
+            // Hủy animation "chuyển trang" đang chờ xử lý (nếu người dùng bấm đổi tab liên tục) -> tránh
+            // trường hợp callback cũ chạy đè lên callback mới, gây hiệu ứng giật ngược về giữa chừng.
+            _pageTransitionCts?.Cancel();
+            var cts = new CancellationTokenSource();
+            _pageTransitionCts = cts;
+
+            var transform = (TranslateTransform)MainContent.RenderTransform!;
+
+            // Đọc & lưu lại Transitions khai báo trong XAML (chỉ cần đọc đúng 1 lần đầu tiên).
+            _contentOpacityTransitions ??= MainContent.Transitions;
+            _contentTransformTransitions ??= transform.Transitions;
+
+            // ===== BƯỚC 1: Đặt về trạng thái "ẩn" (Y=10, Opacity=0) NGAY LẬP TỨC, KHÔNG animate =====
+            // Đây chính là nguyên nhân gây "giật ngược": Transition gắn sẵn trên Y/Opacity sẽ tự động
+            // animate MỌI lần đổi giá trị, kể cả bước reset này. Vì Y đang ở 0 (vị trí trang cũ), gán
+            // Y=10 sẽ khiến trang CŨ tự trượt xuống trong khi Content đã đổi sang trang MỚI -> nhìn như
+            // nội dung đổi trước rồi mới giật/trượt ngược. Nên phải tắt Transitions trước khi reset.
+            MainContent.Transitions = null;
+            transform.Transitions = null;
+
+            transform.Y = 10;
             MainContent.Opacity = 0;
             MainContent.Content = page;
 
-            // Đặt lại giá trị đích ngay sau khi gán Content -> Transition tự nội suy từ (10, 0 độ mờ) về (0, 1).
+            // ===== BƯỚC 2: Bật lại Transitions rồi mới đặt giá trị đích -> lần này mới thực sự animate =====
+            // Phải đợi tới DispatcherPriority.Render để chắc chắn khung hình "ẩn" ở trên đã kịp render
+            // 1 frame, nếu không cả 2 bước dễ bị gộp chung 1 frame và animation vẫn bị đơ/nhảy thẳng.
             Dispatcher.UIThread.Post(() =>
             {
-                ((TranslateTransform)MainContent.RenderTransform!).Y = 0;
+                if (cts.IsCancellationRequested) return;
+
+                MainContent.Transitions = _contentOpacityTransitions;
+                transform.Transitions = _contentTransformTransitions;
+
+                transform.Y = 0;
                 MainContent.Opacity = 1;
-            });
+            }, DispatcherPriority.Render);
         }
 
         /// <summary>Khi bấm "Cài đặt" 1 game ở trang Thư viện: nhảy về Trang chủ và chọn sẵn game đó.</summary>

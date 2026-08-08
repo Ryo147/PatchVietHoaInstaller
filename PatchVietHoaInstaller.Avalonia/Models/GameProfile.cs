@@ -100,7 +100,7 @@ namespace VietHoaInstaller.Models
                     Path.Combine("PlagueIncEvolved_Data", "resources.assets"),
                     Path.Combine("PlagueIncEvolved_Data", "sharedassets0.assets")
                 },
-                BannerImagePath = "avares://PatchVietHoaInstaller/Assets/PlagueIncVH.jpg",
+                BannerImagePath = "avares://PatchVietHoaInstaller/Assets/PlagueIncVH.png",
                 SteamAppId = "246620",
                 GitHubOwner = "Ryo147",
                 GitHubRepo = "PatchVH",
@@ -114,13 +114,30 @@ namespace VietHoaInstaller.Models
             },
             new GameProfile
             {
+                Name = "Devil May Cry 5 w/ Fluffy Mod Manager",
+                PatchDownloadUrl = "EMPTY", // TODO: đổi link thật
+                IsComingSoon = false,
+                InstallMode = GameInstallMode.CopyToModFolder,
+                ModFolderRelativePath = "", // zip đã có sẵn "natives\..." ở gốc -> copy thẳng vào gốc thư mục game, không cộng thêm thư mục con
+                BannerImagePath = "avares://PatchVietHoaInstaller/Assets/DMC5_VH.png", // TODO: đảm bảo file này nằm trong thư mục Assets
+                SteamAppId = "601150",
+                SkipGameFolderValidation = true,
+                LaunchExeRelativePath = Path.Combine("DMC5-Mod", "Modmanager.exe"),
+                GitHubOwner = "Ryo147",
+                GitHubRepo = "PatchVH",
+                GitHubReleaseTag = "", // TODO: điền tag/release thật của DMC5 trước khi bỏ IsComingSoon, để không dùng chung "latest" với game khác
+                AssetNameContains = "DMC5",
+                InstallNote = "Đây là PATCH đi kèm với FluffyModManager nên bạn cần CHỌN THƯ MỤC THỦ CÔNG. Bản dịch có sử dụng phương ngữ miền Nam vào lời thoại nhân vật. Cân nhắc trước khi chơi."
+            },
+            new GameProfile
+            {
                 Name = "Resident Evil 2 Remake (DX11_NON-RT) w/ Fluffy Mod Manager",
                 PatchDownloadUrl = "EMPTY", // TODO: đổi link thật
                 IsComingSoon = true,
                 RequiredGameFiles = new() { "re2.exe" }, // file dùng để nhận diện đúng thư mục game
                 InstallMode = GameInstallMode.CopyToModFolder,
                 ModFolderRelativePath = "", // zip đã có sẵn "natives\..." ở gốc -> copy thẳng vào gốc thư mục game, không cộng thêm thư mục con
-                BannerImagePath = "avares://PatchVietHoaInstaller/Assets/RE2_DX11.png", // TODO: đảm bảo file này nằm trong thư mục Assets
+                BannerImagePath = "avares://PatchVietHoaInstaller/Assets/RE2R_DX11.png", // TODO: đảm bảo file này nằm trong thư mục Assets
                 SteamAppId = "883710",
                 SkipGameFolderValidation = true,
                 LaunchExeRelativePath = Path.Combine("RE2R-Mod", "Modmanager.exe"),
