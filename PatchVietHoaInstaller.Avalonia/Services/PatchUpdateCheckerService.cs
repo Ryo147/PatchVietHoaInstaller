@@ -12,8 +12,12 @@ namespace VietHoaInstaller.Services
     /// KHÔNG kiểm tra được (API lỗi/rate-limit/mất mạng/không tìm thấy asset khớp) — khác hẳn ý nghĩa với
     /// "đã kiểm tra xong và đúng là chưa có bản mới". Dùng để UI không báo nhầm "chưa có bản mới" khi
     /// thực ra là chưa hỏi được GitHub.
+    /// FailureStatus: lý do cụ thể nếu AnyCheckFailed = true, để UI hiển thị đúng thông báo (rate-limit
+    /// khác hẳn mất mạng thật, khác hẳn lỗi cấu hình owner/repo/tag) thay vì gộp chung "mất mạng".
+    /// Ưu tiên hiển thị theo thứ tự: NetworkError > RateLimited > NotFound > OtherHttpError — vì mất
+    /// mạng thật là điều người dùng cần biết trước tiên nếu xảy ra đồng thời.
     /// </summary>
-    public record PatchCheckResult(List<PatchUpdateInfo> Updates, bool AnyCheckFailed);
+    public record PatchCheckResult(List<PatchUpdateInfo> Updates, bool AnyCheckFailed, GitHubFetchStatus? FailureStatus = null);
 
     /// <summary>
     /// Kiểm tra tất cả GameProfile đã cấu hình GitHub, so sánh version tách từ tên asset mới nhất
@@ -35,6 +39,7 @@ namespace VietHoaInstaller.Services
         {
             var results = new List<PatchUpdateInfo>();
             bool anyCheckFailed = false;
+            var failureStatuses = new List<GitHubFetchStatus>();
 
             foreach (var profile in profiles)
             {
@@ -42,14 +47,33 @@ namespace VietHoaInstaller.Services
                 if (string.IsNullOrWhiteSpace(profile.GitHubOwner) || string.IsNullOrWhiteSpace(profile.GitHubRepo))
                     continue;
 
-                var release = await GitHubReleaseService.GetReleaseForProfileAsync(profile.GitHubOwner, profile.GitHubRepo, profile.GitHubReleaseTag);
-                if (release == null) { anyCheckFailed = true; continue; }
+                var fetchResult = await GitHubReleaseService.GetReleaseForProfileWithStatusAsync(profile.GitHubOwner, profile.GitHubRepo, profile.GitHubReleaseTag);
+                var release = fetchResult.Release;
+                if (release == null)
+                {
+                    anyCheckFailed = true;
+                    failureStatuses.Add(fetchResult.Status);
+                    continue;
+                }
 
                 var asset = GitHubReleaseService.FindAsset(release, profile.AssetNameContains);
-                if (asset == null) { anyCheckFailed = true; continue; }
+                if (asset == null)
+                {
+                    // Release lấy được nhưng không tìm thấy asset khớp tên -> lỗi cấu hình (AssetNameContains
+                    // sai hoặc release chưa đính kèm đúng file), không phải lỗi mạng/rate-limit.
+                    anyCheckFailed = true;
+                    failureStatuses.Add(GitHubFetchStatus.NotFound);
+                    continue;
+                }
 
                 string? newVersion = GitHubReleaseService.ExtractVersionFromAssetName(asset.Name);
-                if (string.IsNullOrWhiteSpace(newVersion)) { anyCheckFailed = true; continue; }
+                if (string.IsNullOrWhiteSpace(newVersion))
+                {
+                    // Tên asset không khớp quy ước "..._v{version}.ext" -> cũng là lỗi cấu hình/đặt tên.
+                    anyCheckFailed = true;
+                    failureStatuses.Add(GitHubFetchStatus.NotFound);
+                    continue;
+                }
 
                 // Ưu tiên đọc version THẬT đã cài trên máy (ground truth). Chỉ fallback về KnownPatchVersion
                 // hardcode khi chưa cài lần nào qua tool này (chưa có manifest) hoặc không xác định được thư mục game.
@@ -69,7 +93,19 @@ namespace VietHoaInstaller.Services
                 }
             }
 
-            return new PatchCheckResult(results, anyCheckFailed);
+            GitHubFetchStatus? primaryFailure = null;
+            foreach (var candidate in new[]
+                     {
+                         GitHubFetchStatus.NetworkError,
+                         GitHubFetchStatus.RateLimited,
+                         GitHubFetchStatus.NotFound,
+                         GitHubFetchStatus.OtherHttpError
+                     })
+            {
+                if (failureStatuses.Contains(candidate)) { primaryFailure = candidate; break; }
+            }
+
+            return new PatchCheckResult(results, anyCheckFailed, primaryFailure);
         }
     }
 }

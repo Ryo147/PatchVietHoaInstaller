@@ -232,6 +232,13 @@ namespace VietHoaInstaller.Services
                         {
                             ExpectedHash = NormalizeHash(autoHash);
                             HashAlgorithmName = "SHA256";
+                            progress.Report(new InstallProgress(0, $"Đã lấy hash SHA-256 mới nhất từ GitHub cho {asset.Name}."));
+                        }
+                        else
+                        {
+                            ExpectedHash = "";
+                            progress.Report(new InstallProgress(0,
+                                "GitHub không cung cấp hash cho file này — bỏ qua bước xác thực toàn vẹn."));
                         }
 
                         // Version thật của file sắp cài, tách từ chính tên asset — đây mới là "sự thật" cần lưu lại,
@@ -239,6 +246,12 @@ namespace VietHoaInstaller.Services
                         string? assetVersion = GitHubReleaseService.ExtractVersionFromAssetName(asset.Name);
                         if (!string.IsNullOrWhiteSpace(assetVersion))
                             installedVersion = assetVersion;
+                    }
+                    else
+                    {
+                        ExpectedHash = "";
+                        progress.Report(new InstallProgress(0,
+                            "Không lấy được thông tin bản mới nhất từ GitHub — dùng link dự phòng, bỏ qua xác thực hash."));
                     }
                 }
 

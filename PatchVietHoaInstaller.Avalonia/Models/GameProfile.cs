@@ -93,8 +93,7 @@ namespace VietHoaInstaller.Models
             new GameProfile
             {
                 Name = "Plague Inc: Evolved",
-                ExpectedHash = "46ad3b2f97934edcf692a3c70bd137d298438895f196439ae0370185ae150e44",
-                PatchDownloadUrl = "https://github.com/Ryo147/PatchVH/releases/download/1/PATCHVH_P.I._v1.0.1.zip",
+                PatchDownloadUrl = "https://github.com/Ryo147/PatchVH/releases/download/1/PATCHVH_P.I._v1.1.0.zip",
                 RequiredGameFiles = new()
                 {
                     Path.Combine("PlagueIncEvolved_Data", "resources.assets"),
@@ -125,7 +124,7 @@ namespace VietHoaInstaller.Models
                 LaunchExeRelativePath = Path.Combine("DMC5-Mod", "Modmanager.exe"),
                 GitHubOwner = "Ryo147",
                 GitHubRepo = "PatchVH",
-                GitHubReleaseTag = "", // TODO: điền tag/release thật của DMC5 trước khi bỏ IsComingSoon, để không dùng chung "latest" với game khác
+                GitHubReleaseTag = "2", // TODO: điền tag/release thật của DMC5 trước khi bỏ IsComingSoon, để không dùng chung "latest" với game khác
                 AssetNameContains = "DMC5",
                 InstallNote = "Đây là PATCH đi kèm với FluffyModManager nên bạn cần CHỌN THƯ MỤC THỦ CÔNG. Bản dịch có sử dụng phương ngữ miền Nam vào lời thoại nhân vật. Cân nhắc trước khi chơi."
             },

@@ -152,9 +152,17 @@ namespace VietHoaInstaller
             {
                 if (checkResult.AnyCheckFailed)
                 {
-                    // Khác hẳn "chưa có bản mới" — đây là app KHÔNG hỏi được GitHub (rate-limit/mất mạng/config sai).
-                    App.ShowTrayNotification("Không kiểm tra được bản Patch",
-                        "Không kết nối được tới GitHub lúc này (có thể do mất mạng hoặc giới hạn request). Vui lòng thử lại sau ít phút.");
+                    string message = checkResult.FailureStatus switch
+                    {
+                        GitHubFetchStatus.RateLimited =>
+                            "Đã đạt giới hạn số lần kiểm tra tới GitHub trong giờ này (không phải do mất mạng). Vui lòng thử lại sau ít phút.",
+                        GitHubFetchStatus.NetworkError =>
+                            "Không kết nối được tới GitHub. Vui lòng kiểm tra lại kết nối mạng rồi thử lại.",
+                        GitHubFetchStatus.NotFound =>
+                            "Không tìm thấy đúng bản Patch trên GitHub (có thể do cấu hình repo/tag/tên file bị sai). Vui lòng báo cho nhóm.",
+                        _ => "Không kiểm tra được bản Patch lúc này. Vui lòng thử lại sau ít phút."
+                    };
+                    App.ShowTrayNotification("Không kiểm tra được bản Patch", message);
                 }
                 else
                 {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -40,6 +41,29 @@ namespace VietHoaInstaller.Services
     }
 
     /// <summary>
+    /// Lý do 1 lần gọi GitHub API KHÔNG trả về release tươi thành công. Trước đây mọi lỗi (rate-limit,
+    /// mất mạng thật, config sai owner/repo/tag...) đều bị gộp chung thành "mất mạng" khiến người dùng
+    /// hiểu nhầm dù mạng hoàn toàn bình thường. Tách rõ ra để UI báo đúng nguyên nhân và đúng hành động
+    /// nên làm (chờ vài phút vs kiểm tra lại mạng vs báo lỗi cho nhóm dịch).
+    /// </summary>
+    public enum GitHubFetchStatus
+    {
+        Success,
+        RateLimited,
+        NetworkError,
+        NotFound,
+        OtherHttpError
+    }
+
+    /// <param name="Release">
+    /// Release lấy được (asset + digest...). Có thể KHÁC null dù <paramref name="Status"/> != Success,
+    /// nếu đó là dữ liệu CŨ còn lưu trong cache từ lần gọi thành công gần nhất (vd đang bị rate-limit
+    /// nhưng có bản đã lấy được vài phút trước) — dùng tạm còn hơn coi như thất bại hoàn toàn.
+    /// <see cref="IsStale"/> cho biết dữ liệu này có phải "tươi" (vừa lấy trong lần gọi này) hay không.
+    /// </param>
+    public record GitHubFetchResult(GitHubFetchStatus Status, GitHubRelease? Release, bool IsStale = false);
+
+    /// <summary>
     /// Gọi GitHub Releases API (public, không cần token) để: (1) kiểm tra bản cập nhật mới của chính
     /// app cài đặt, và (2) tự động lấy link tải + hash SHA-256 mới nhất của từng bản patch, thay vì
     /// phải hardcode link trong GameProfile rồi phải sửa code mỗi khi ra bản patch mới.
@@ -48,6 +72,22 @@ namespace VietHoaInstaller.Services
     {
         // GitHub API yêu cầu bắt buộc phải có User-Agent, nếu không sẽ bị từ chối request (403).
         private static readonly HttpClient _http = CreateClient();
+
+        // ===== CACHE (giảm tiêu tốn quota rate-limit 60 request/giờ dùng chung theo IP) =====
+        // 1. Trong CacheTtl: trả thẳng dữ liệu cũ, KHÔNG gọi mạng luôn -> tiết kiệm request lẫn thời gian.
+        // 2. Sau CacheTtl: gọi lại kèm header "If-None-Match" (ETag lần trước). Nếu GitHub trả 304 (không
+        //    có gì mới) thì theo tài liệu chính thức của GitHub, request dạng conditional trả 304 KHÔNG
+        //    bị tính vào rate-limit -> gần như "hỏi miễn phí" xem có bản mới hay chưa.
+        private static readonly Dictionary<string, CacheEntry> _cache = new();
+        private static readonly object _cacheLock = new();
+        private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(10);
+
+        private sealed class CacheEntry
+        {
+            public DateTime FetchedAtUtc;
+            public string? ETag;
+            public GitHubRelease? Release;
+        }
 
         private static HttpClient CreateClient()
         {
@@ -58,56 +98,124 @@ namespace VietHoaInstaller.Services
             return client;
         }
 
-        /// <summary>Lấy thông tin release theo đúng tag chỉ định (không phụ thuộc release nào khác trong repo đang "mới nhất").
+        /// <summary>Lấy thông tin release theo đúng tag chỉ định, kèm lý do rõ ràng nếu thất bại.
         /// Dùng cho các GameProfile đã tách tag riêng, để game này không bị "che" khi có game khác tạo release mới hơn.</summary>
-        public static async Task<GitHubRelease?> GetReleaseByTagAsync(string owner, string repo, string tag, CancellationToken ct = default)
+        public static Task<GitHubFetchResult> GetReleaseByTagWithStatusAsync(string owner, string repo, string tag, CancellationToken ct = default)
         {
-            try
-            {
-                string url = $"https://api.github.com/repos/{owner}/{repo}/releases/tags/{Uri.EscapeDataString(tag)}";
-                using var response = await _http.GetAsync(url, ct);
-                if (!response.IsSuccessStatusCode)
-                    return null;
+            string url = $"https://api.github.com/repos/{owner}/{repo}/releases/tags/{Uri.EscapeDataString(tag)}";
+            return FetchWithCacheAsync(url, ct);
+        }
 
-                await using var stream = await response.Content.ReadAsStreamAsync(ct);
-                return await JsonSerializer.DeserializeAsync<GitHubRelease>(stream, cancellationToken: ct);
-            }
-            catch
-            {
-                return null;
-            }
+        /// <summary>Lấy thông tin bản release mới nhất của 1 repo, kèm lý do rõ ràng nếu thất bại.</summary>
+        public static Task<GitHubFetchResult> GetLatestReleaseWithStatusAsync(string owner, string repo, CancellationToken ct = default)
+        {
+            string url = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
+            return FetchWithCacheAsync(url, ct);
         }
 
         /// <summary>
-        /// Điểm gọi API duy nhất mà PatchInstallerService/PatchUpdateCheckerService nên dùng.
-        /// Nếu GameProfile có cấu hình <paramref name="releaseTag"/> riêng -> gọi đúng release đó (an toàn khi
-        /// nhiều game tách tag riêng). Nếu để rỗng -> fallback về release "latest" chung của repo (hành vi cũ,
-        /// chỉ an toàn khi repo chỉ có đúng 1 release đang hoạt động cho tất cả game).
+        /// Điểm gọi API duy nhất mà PatchInstallerService/PatchUpdateCheckerService nên dùng, kèm lý do
+        /// rõ ràng nếu thất bại (xem <see cref="GitHubFetchStatus"/>). Nếu GameProfile có cấu hình
+        /// <paramref name="releaseTag"/> riêng -> gọi đúng release đó. Nếu để rỗng -> fallback về release
+        /// "latest" chung của repo (hành vi cũ, chỉ an toàn khi repo chỉ có đúng 1 release đang hoạt động).
         /// </summary>
-        public static Task<GitHubRelease?> GetReleaseForProfileAsync(string owner, string repo, string? releaseTag, CancellationToken ct = default)
+        public static Task<GitHubFetchResult> GetReleaseForProfileWithStatusAsync(string owner, string repo, string? releaseTag, CancellationToken ct = default)
             => string.IsNullOrWhiteSpace(releaseTag)
-                ? GetLatestReleaseAsync(owner, repo, ct)
-                : GetReleaseByTagAsync(owner, repo, releaseTag, ct);
+                ? GetLatestReleaseWithStatusAsync(owner, repo, ct)
+                : GetReleaseByTagWithStatusAsync(owner, repo, releaseTag, ct);
 
-        /// <summary>Lấy thông tin bản release mới nhất của 1 repo. Trả về null nếu lỗi mạng/repo không có release/hết rate limit.</summary>
+        // ===== Các hàm cũ giữ nguyên chữ ký (Release-or-null) để tương thích ngược cho nơi gọi không
+        // cần phân biệt lý do thất bại (vd PatchInstallerService vốn đã có logic fallback riêng). =====
+
+        public static async Task<GitHubRelease?> GetReleaseByTagAsync(string owner, string repo, string tag, CancellationToken ct = default)
+            => (await GetReleaseByTagWithStatusAsync(owner, repo, tag, ct)).Release;
+
+        /// <summary>Trả về null nếu lỗi mạng/repo không có release/hết rate limit. Xem <see cref="GetLatestReleaseWithStatusAsync"/> nếu cần biết rõ lý do.</summary>
         public static async Task<GitHubRelease?> GetLatestReleaseAsync(string owner, string repo, CancellationToken ct = default)
+            => (await GetLatestReleaseWithStatusAsync(owner, repo, ct)).Release;
+
+        public static async Task<GitHubRelease?> GetReleaseForProfileAsync(string owner, string repo, string? releaseTag, CancellationToken ct = default)
+            => (await GetReleaseForProfileWithStatusAsync(owner, repo, releaseTag, ct)).Release;
+
+        private static async Task<GitHubFetchResult> FetchWithCacheAsync(string url, CancellationToken ct)
         {
+            CacheEntry? cached;
+            lock (_cacheLock)
+            {
+                _cache.TryGetValue(url, out cached);
+            }
+
+            // Vẫn còn trong TTL cache -> trả thẳng, KHÔNG gọi mạng, tiết kiệm quota + nhanh hơn.
+            if (cached != null && DateTime.UtcNow - cached.FetchedAtUtc < CacheTtl)
+            {
+                return new GitHubFetchResult(GitHubFetchStatus.Success, cached.Release, IsStale: false);
+            }
+
             try
             {
-                string url = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
-                using var response = await _http.GetAsync(url, ct);
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                if (!string.IsNullOrEmpty(cached?.ETag))
+                    request.Headers.TryAddWithoutValidation("If-None-Match", cached!.ETag);
+
+                using var response = await _http.SendAsync(request, ct);
+
+                // 304: dữ liệu không đổi so với lần trước -> dùng lại cache. Theo tài liệu GitHub, request
+                // dạng conditional trả 304 KHÔNG bị tính vào rate-limit, nên nhánh này gần như "miễn phí".
+                if (response.StatusCode == HttpStatusCode.NotModified && cached != null)
+                {
+                    lock (_cacheLock) { cached.FetchedAtUtc = DateTime.UtcNow; }
+                    return new GitHubFetchResult(GitHubFetchStatus.Success, cached.Release, IsStale: false);
+                }
+
+                if (response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.TooManyRequests)
+                {
+                    if (IsRateLimitResponse(response))
+                    {
+                        // Vẫn còn cache cũ (dù đã hết hạn TTL) -> thà dùng tạm còn hơn coi như thất bại hẳn.
+                        return cached?.Release != null
+                            ? new GitHubFetchResult(GitHubFetchStatus.RateLimited, cached.Release, IsStale: true)
+                            : new GitHubFetchResult(GitHubFetchStatus.RateLimited, null);
+                    }
+                    return new GitHubFetchResult(GitHubFetchStatus.OtherHttpError, cached?.Release, IsStale: cached?.Release != null);
+                }
+
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                    return new GitHubFetchResult(GitHubFetchStatus.NotFound, null);
+
                 if (!response.IsSuccessStatusCode)
-                    return null;
+                    return new GitHubFetchResult(GitHubFetchStatus.OtherHttpError, cached?.Release, IsStale: cached?.Release != null);
 
                 await using var stream = await response.Content.ReadAsStreamAsync(ct);
-                return await JsonSerializer.DeserializeAsync<GitHubRelease>(stream, cancellationToken: ct);
+                var release = await JsonSerializer.DeserializeAsync<GitHubRelease>(stream, cancellationToken: ct);
+
+                string? etag = response.Headers.ETag?.Tag;
+                lock (_cacheLock)
+                {
+                    _cache[url] = new CacheEntry { FetchedAtUtc = DateTime.UtcNow, ETag = etag, Release = release };
+                }
+
+                return new GitHubFetchResult(GitHubFetchStatus.Success, release);
             }
-            catch
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Net.Sockets.SocketException)
             {
-                // Không có mạng, hết rate limit (60 request/giờ không token), hoặc repo/release không tồn tại
-                // -> coi như "không kiểm tra được", để nơi gọi tự quyết định dùng giá trị fallback đã hardcode.
-                return null;
+                // Lỗi kết nối thật sự (DNS/timeout/mất mạng) -> khác hẳn rate-limit, nhưng vẫn thử dùng
+                // cache cũ nếu có, thay vì thất bại trắng.
+                return cached?.Release != null
+                    ? new GitHubFetchResult(GitHubFetchStatus.NetworkError, cached.Release, IsStale: true)
+                    : new GitHubFetchResult(GitHubFetchStatus.NetworkError, null);
             }
+        }
+
+        /// <summary>GitHub báo hết quota qua header "X-RateLimit-Remaining: 0" kèm mã 403, hoặc mã 429.</summary>
+        private static bool IsRateLimitResponse(HttpResponseMessage response)
+        {
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
+                return true;
+
+            if (response.Headers.TryGetValues("X-RateLimit-Remaining", out var values))
+                return values.FirstOrDefault() == "0";
+
+            return false;
         }
 
         /// <summary>

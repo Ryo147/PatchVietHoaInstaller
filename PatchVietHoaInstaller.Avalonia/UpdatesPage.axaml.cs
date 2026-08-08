@@ -31,12 +31,22 @@ namespace VietHoaInstaller
 
         private async Task LoadLatestReleaseAsync()
         {
-            var release = await GitHubReleaseService.GetLatestReleaseAsync(AppUpdateOwner, AppUpdateRepo);
+            var fetchResult = await GitHubReleaseService.GetLatestReleaseWithStatusAsync(AppUpdateOwner, AppUpdateRepo);
+            var release = fetchResult.Release;
 
             if (release == null || string.IsNullOrWhiteSpace(release.TagName))
             {
                 SetStatusDot("#8B90A3");
-                TxtLatestStatus.Text = "Không thể kiểm tra bản cập nhật (mất mạng hoặc chưa có bản phát hành).";
+                TxtLatestStatus.Text = fetchResult.Status switch
+                {
+                    GitHubFetchStatus.RateLimited =>
+                        "Đã đạt giới hạn số lần kiểm tra tới GitHub trong giờ này. Vui lòng thử lại sau ít phút.",
+                    GitHubFetchStatus.NetworkError =>
+                        "Không kết nối được tới GitHub — vui lòng kiểm tra lại kết nối mạng rồi thử lại.",
+                    GitHubFetchStatus.NotFound =>
+                        "Không tìm thấy bản phát hành nào trên GitHub cho app này.",
+                    _ => "Không thể kiểm tra bản cập nhật lúc này. Vui lòng thử lại sau."
+                };
                 return;
             }
 
