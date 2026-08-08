@@ -99,7 +99,7 @@ namespace VietHoaInstaller.Models
                     Path.Combine("PlagueIncEvolved_Data", "resources.assets"),
                     Path.Combine("PlagueIncEvolved_Data", "sharedassets0.assets")
                 },
-                BannerImagePath = "avares://PatchVietHoaInstaller/Assets/PlagueIncVH.png",
+                BannerImagePath = "avares://PatchVietHoaInstaller/Assets/PlagueIncVH.jpg",
                 SteamAppId = "246620",
                 GitHubOwner = "Ryo147",
                 GitHubRepo = "PatchVH",
@@ -118,7 +118,7 @@ namespace VietHoaInstaller.Models
                 IsComingSoon = false,
                 InstallMode = GameInstallMode.CopyToModFolder,
                 ModFolderRelativePath = "", // zip đã có sẵn "natives\..." ở gốc -> copy thẳng vào gốc thư mục game, không cộng thêm thư mục con
-                BannerImagePath = "avares://PatchVietHoaInstaller/Assets/DMC5_VH.png", // TODO: đảm bảo file này nằm trong thư mục Assets
+                BannerImagePath = "avares://PatchVietHoaInstaller/Assets/DMC5_VH.jpg",
                 SteamAppId = "601150",
                 SkipGameFolderValidation = true,
                 LaunchExeRelativePath = Path.Combine("DMC5-Mod", "Modmanager.exe"),
@@ -136,7 +136,7 @@ namespace VietHoaInstaller.Models
                 RequiredGameFiles = new() { "re2.exe" }, // file dùng để nhận diện đúng thư mục game
                 InstallMode = GameInstallMode.CopyToModFolder,
                 ModFolderRelativePath = "", // zip đã có sẵn "natives\..." ở gốc -> copy thẳng vào gốc thư mục game, không cộng thêm thư mục con
-                BannerImagePath = "avares://PatchVietHoaInstaller/Assets/RE2R_DX11.png", // TODO: đảm bảo file này nằm trong thư mục Assets
+                BannerImagePath = "avares://PatchVietHoaInstaller/Assets/RE2R_DX11.jpg",
                 SteamAppId = "883710",
                 SkipGameFolderValidation = true,
                 LaunchExeRelativePath = Path.Combine("RE2R-Mod", "Modmanager.exe"),

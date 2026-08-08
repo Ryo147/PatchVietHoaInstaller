@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- Tool nội bộ, không đóng gói cùng app -> tách khỏi solution chính, chạy độc lập bằng `dotnet run`. -->
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<InvariantGlobalization>true</InvariantGlobalization>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Cross-platform (không phụ thuộc System.Drawing.Common vốn chỉ chạy tốt trên Windows). -->
+		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
+	</ItemGroup>
+
+</Project>

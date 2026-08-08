@@ -41,7 +41,36 @@
 
 	<ItemGroup>
 		<None Remove="Assets\**" />
-		<AvaloniaResource Include="Assets\**" />
+		<AvaloniaResource Include="Assets\**" Exclude="Assets\RawSource\**" />
 	</ItemGroup>
+
+	<!--
+		Tự động tối ưu banner: ảnh gốc (4K, tái chế từ truyền thông/marketing) thả vào Assets/RawSource/,
+		Target này tự resize + nén JPEG rồi xuất ra Assets/ TRƯỚC khi Avalonia gom resource vào assembly.
+		Không cần chạy tay tool riêng mỗi lần thêm banner mới — build bình thường là đủ.
+		Chi tiết xử lý ảnh: xem tools/OptimizeBanner/Program.cs.
+
+		Có Condition chặn Exec khi Assets/RawSource/ không có ảnh mới -> build bình thường (không thêm
+		banner) không hề chậm đi.
+	-->
+	<Target Name="OptimizeRawBanners" BeforeTargets="BeforeBuild">
+		<ItemGroup>
+			<RawBannerSource Include="Assets\RawSource\*.png;Assets\RawSource\*.jpg;Assets\RawSource\*.jpeg;Assets\RawSource\*.webp;Assets\RawSource\*.bmp" />
+		</ItemGroup>
+
+		<Exec Condition="'@(RawBannerSource)' != ''"
+		      Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)..\tools\OptimizeBanner&quot; -c Release -- --all &quot;$(MSBuildThisFileDirectory)Assets\RawSource&quot; &quot;$(MSBuildThisFileDirectory)Assets&quot;"
+		      ContinueOnError="WarnAndContinue" />
+
+		<!-- Đăng ký ngay các .jpg vừa xuất (hoặc đã có sẵn từ lần build trước) làm AvaloniaResource
+		     TRONG chính lần build này -> không cần build 2 lần mới nhận diện được banner mới. -->
+		<ItemGroup>
+			<GeneratedBannerJpg Include="$(MSBuildThisFileDirectory)Assets\%(RawBannerSource.Filename).jpg" Condition="Exists('$(MSBuildThisFileDirectory)Assets\%(RawBannerSource.Filename).jpg')" />
+		</ItemGroup>
+		<ItemGroup>
+			<AvaloniaResource Include="@(GeneratedBannerJpg)" />
+			<None Remove="@(GeneratedBannerJpg)" />
+		</ItemGroup>
+	</Target>
 
 </Project>

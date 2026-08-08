@@ -20,6 +20,32 @@ namespace VietHoaInstaller.Services
     public record InstallProgress(int Percent, string Message);
 
     /// <summary>
+    /// Giới hạn tần suất progress.Report() theo thời gian thay vì báo mỗi file 1 lần. Patch/mod nhiều file
+    /// (vài nghìn file nhỏ) trước đây báo progress mỗi file -> UI thread bị dội hàng nghìn lệnh
+    /// Dispatcher.Post/AppendLog dồn dập, gây giật/đơ trong lúc cài đặt. Luôn báo lần cuối cùng (done ==
+    /// total) để progress bar/log không bao giờ dừng lỡ ở giữa chừng.
+    /// </summary>
+    internal sealed class ProgressThrottle
+    {
+        private readonly TimeSpan _minInterval;
+        private long _lastReportTicks = -1;
+
+        public ProgressThrottle(int minIntervalMs = 100) => _minInterval = TimeSpan.FromMilliseconds(minIntervalMs);
+
+        public bool ShouldReport(int done, int total)
+        {
+            if (done >= total) return true; // luôn báo mốc cuối cùng
+
+            long now = Environment.TickCount64;
+            if (_lastReportTicks >= 0 && now - _lastReportTicks < _minInterval.TotalMilliseconds)
+                return false;
+
+            _lastReportTicks = now;
+            return true;
+        }
+    }
+
+    /// <summary>
     /// Kết quả kiểm tra xem thư mục được chọn có đúng là thư mục game hay không.
     /// </summary>
     public record GameFolderCheckResult(bool IsValid, string Message);
@@ -308,6 +334,7 @@ namespace VietHoaInstaller.Services
                     $"Gói Việt hóa sau khi giải nén vượt quá giới hạn an toàn ({MaxTotalUncompressedBytes / (1024 * 1024 * 1024)}GB). Có thể file đã bị hỏng hoặc đã bị chỉnh sửa.");
 
             long actualTotalWritten = 0;
+            var throttle = new ProgressThrottle();
 
             foreach (var entry in entries)
             {
@@ -344,8 +371,11 @@ namespace VietHoaInstaller.Services
                 }
 
                 done++;
-                int pct = 72 + (int)((done / (double)total) * 10);
-                progress.Report(new InstallProgress(pct, $"Đang giải nén ({done}/{total} file)..."));
+                if (throttle.ShouldReport(done, total))
+                {
+                    int pct = 72 + (int)((done / (double)total) * 10);
+                    progress.Report(new InstallProgress(pct, $"Đang giải nén ({done}/{total} file)..."));
+                }
             }
         }
 
@@ -365,6 +395,7 @@ namespace VietHoaInstaller.Services
             var allFiles = Directory.GetFiles(extractDir, "*", SearchOption.AllDirectories);
             int total = Math.Max(allFiles.Length, 1);
             int done = 0;
+            var throttle = new ProgressThrottle();
 
             foreach (var srcFile in allFiles)
             {
@@ -383,8 +414,11 @@ namespace VietHoaInstaller.Services
                 manifest.RelativeFiles.Add(relativePath);
 
                 done++;
-                int pct = 82 + (int)((done / (double)total) * 16);
-                progress.Report(new InstallProgress(pct, $"Đang cài đặt file ({done}/{total})..."));
+                if (throttle.ShouldReport(done, total))
+                {
+                    int pct = 82 + (int)((done / (double)total) * 16);
+                    progress.Report(new InstallProgress(pct, $"Đang cài đặt file ({done}/{total})..."));
+                }
             }
 
             return manifest;
@@ -407,6 +441,7 @@ namespace VietHoaInstaller.Services
             var allFiles = Directory.GetFiles(extractDir, "*", SearchOption.AllDirectories);
             int total = Math.Max(allFiles.Length, 1);
             int done = 0;
+            var throttle = new ProgressThrottle();
 
             foreach (var srcFile in allFiles)
             {
@@ -418,8 +453,11 @@ namespace VietHoaInstaller.Services
                 manifest.RelativeFiles.Add(relativePath);
 
                 done++;
-                int pct = 82 + (int)((done / (double)total) * 16);
-                progress.Report(new InstallProgress(pct, $"Đang copy mod ({done}/{total})..."));
+                if (throttle.ShouldReport(done, total))
+                {
+                    int pct = 82 + (int)((done / (double)total) * 16);
+                    progress.Report(new InstallProgress(pct, $"Đang copy mod ({done}/{total})..."));
+                }
             }
 
             return manifest;
@@ -439,6 +477,7 @@ namespace VietHoaInstaller.Services
                     string modFolder = Path.Combine(gameFolder, manifest.ModFolderRelativePath);
                     int total = Math.Max(manifest.RelativeFiles.Count, 1);
                     int done = 0;
+                    var throttle = new ProgressThrottle();
 
                     foreach (var relativePath in manifest.RelativeFiles)
                     {
@@ -448,8 +487,11 @@ namespace VietHoaInstaller.Services
                         if (File.Exists(file)) File.Delete(file);
 
                         done++;
-                        int pct = (int)((done / (double)total) * 90);
-                        progress.Report(new InstallProgress(pct, $"Đang xóa file mod ({done}/{total})..."));
+                        if (throttle.ShouldReport(done, total))
+                        {
+                            int pct = (int)((done / (double)total) * 90);
+                            progress.Report(new InstallProgress(pct, $"Đang xóa file mod ({done}/{total})..."));
+                        }
                     }
 
                     try
@@ -468,6 +510,7 @@ namespace VietHoaInstaller.Services
                     var backupFolder = GetBackupFolder(gameFolder);
                     int total = Math.Max(manifest.RelativeFiles.Count, 1);
                     int done = 0;
+                    var throttle = new ProgressThrottle();
 
                     foreach (var relativePath in manifest.RelativeFiles)
                     {
@@ -487,8 +530,11 @@ namespace VietHoaInstaller.Services
                         }
 
                         done++;
-                        int pct = (int)((done / (double)total) * 90);
-                        progress.Report(new InstallProgress(pct, $"Đang khôi phục file gốc ({done}/{total})..."));
+                        if (throttle.ShouldReport(done, total))
+                        {
+                            int pct = (int)((done / (double)total) * 90);
+                            progress.Report(new InstallProgress(pct, $"Đang khôi phục file gốc ({done}/{total})..."));
+                        }
                     }
                 }
 

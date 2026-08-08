@@ -548,12 +548,25 @@ namespace VietHoaInstaller
         // ================= HELPER UI =================
 
         /// <summary>Ghi 1 dòng vào khung "Nhật ký hoạt động", kèm giờ:phút:giây, tô màu theo mức độ, tự cuộn xuống dòng mới nhất.</summary>
+        // Mỗi dòng log chiếm 2 Inline (timestamp + message). Giới hạn số dòng để InlineCollection không
+        // phình to vô hạn qua nhiều lượt cài/gỡ trong 1 phiên chạy app -> mỗi lần Add/ScrollToEnd sẽ càng
+        // lúc càng chậm nếu không giới hạn, nhất là khi patch nhiều file (giờ đã throttle ở nguồn, nhưng
+        // vẫn nên chặn ở đây phòng trường hợp người dùng cài/gỡ nhiều lần liên tục trong 1 phiên).
+        private const int MaxLogLines = 400;
+
         private void AppendLog(string message)
         {
             string timestamp = $"[{DateTime.Now:HH:mm:ss}] ";
             IBrush messageBrush = ClassifyLogBrush(message);
 
             TxtLog.Inlines ??= new InlineCollection();
+
+            while (TxtLog.Inlines.Count > MaxLogLines * 2)
+            {
+                TxtLog.Inlines.RemoveAt(0);
+                TxtLog.Inlines.RemoveAt(0);
+            }
+
             TxtLog.Inlines.Add(new Run(timestamp) { Foreground = GetBrushResource("TextMutedBrush", Brushes.Gray) });
             TxtLog.Inlines.Add(new Run(message + "\n") { Foreground = messageBrush });
 
