@@ -16,3 +16,6 @@
 /PatchVietHoaInstaller.Avalonia/obj/Release/net10.0
 /PatchVietHoaInstaller.Avalonia/bin
 /PatchVietHoaInstaller.Avalonia/obj
+/tools/obj
+/tools/bin
+/.vscode
