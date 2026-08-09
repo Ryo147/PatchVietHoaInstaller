@@ -22,6 +22,7 @@
 		<Title>PatchVietHoaInstaller</Title>
 
 		<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+ 	    <DebugType>none</DebugType>
 
 		<!--
 			Nén toàn bộ bundle bên trong file .exe single-file lúc publish -> giảm thêm đáng kể dung

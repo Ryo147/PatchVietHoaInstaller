@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
+using System.Linq;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -28,14 +30,28 @@ namespace VietHoaInstaller.Services
     {
         private static readonly HttpClient _http = new() { Timeout = Timeout.InfiniteTimeSpan };
 
-        /// <summary>Tải file update mới về thư mục tạm, xác thực hash nếu có, rồi trả về đường dẫn file đã tải.</summary>
+        /// <summary>
+        /// Tải file update mới về thư mục tạm, xác thực hash nếu có, rồi trả về đường dẫn file THỰC THI
+        /// đã sẵn sàng để thay thế app hiện tại.
+        ///
+        /// GHI CHÚ FIX: trước đây hàm này luôn coi file tải về là 1 binary chạy thẳng được (đặt tên với
+        /// đuôi ".exe" trên Windows, không đuôi trên Linux). Điều đó đúng cho Windows (asset ".exe" tải
+        /// thẳng), nhưng SAI cho Linux — vì asset Linux được đóng gói và up lên GitHub dưới dạng ".zip"
+        /// (chứa 1 file thực thi bên trong, xem VietHoaInstaller.csproj: PublishSingleFile cho linux-x64
+        /// rồi zip lại khi tạo release). Tải file .zip đó về, chmod +x rồi move đè trực tiếp lên app đang
+        /// chạy sẽ tạo ra 1 file KHÔNG PHẢI binary hợp lệ -> app không khởi động lại được sau khi "cập
+        /// nhật". Nay hàm này tự nhận diện đúng đuôi file thật của asset (qua downloadUrl) thay vì đoán
+        /// theo OS, và nếu đó là ".zip" thì sẽ tự giải nén ra rồi tìm đúng file thực thi bên trong.
+        /// </summary>
         public static async Task<string> DownloadNewVersionAsync(
             string downloadUrl, string? expectedSha256, IProgress<AppUpdateProgress> progress, CancellationToken ct)
         {
             PatchInstallerService.EnsureSafeDownloadUrl(downloadUrl);
 
-            string extension = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : "";
-            string tempExePath = Path.Combine(Path.GetTempPath(), "VietHoaInstaller_update_" + Guid.NewGuid().ToString("N") + extension);
+            // Lấy đúng đuôi file của asset thật (vd ".zip", ".exe", hoặc rỗng nếu asset Linux không nén),
+            // thay vì đoán mù theo OS như trước — asset Linux hiện tại là ".zip".
+            string urlExtension = Path.GetExtension(new Uri(downloadUrl).AbsolutePath);
+            string tempDownloadPath = Path.Combine(Path.GetTempPath(), "VietHoaInstaller_update_" + Guid.NewGuid().ToString("N") + urlExtension);
 
             using var response = await _http.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, ct);
             response.EnsureSuccessStatusCode();
@@ -43,7 +59,7 @@ namespace VietHoaInstaller.Services
             long? totalBytes = response.Content.Headers.ContentLength;
 
             await using (var contentStream = await response.Content.ReadAsStreamAsync(ct))
-            await using (var fileStream = new FileStream(tempExePath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true))
+            await using (var fileStream = new FileStream(tempDownloadPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true))
             {
                 var buffer = new byte[81920];
                 long totalRead = 0;
@@ -68,25 +84,75 @@ namespace VietHoaInstaller.Services
             }
             if (string.IsNullOrWhiteSpace(expectedSha256))
             {
-                try { File.Delete(tempExePath); } catch { }
+                try { File.Delete(tempDownloadPath); } catch { }
                 throw new InvalidOperationException(
                     "Không thể xác thực tính bản cập nhật (thiếu SHA-256 từ GitHub). " +
                     "Vui lòng tải bản mới tại trang GitHub của phần mềm.");
             }
 
+            // Xác thực hash trên đúng file GitHub đã upload (zip hoặc exe) — KHÔNG xác thực sau khi giải
+            // nén, vì digest của GitHub tính trên asset gốc, không phải file bên trong.
             progress.Report(new AppUpdateProgress(100, "Đang xác thực file tải về..."));
-            using var sha256 = SHA256.Create();
-            await using var verifyStream = File.OpenRead(tempExePath);
-            byte[] hashBytes = await sha256.ComputeHashAsync(verifyStream, ct);
-            string actualHash = Convert.ToHexString(hashBytes);
-
-            if (!actualHash.Equals(expectedSha256, StringComparison.OrdinalIgnoreCase))
+            using (var sha256 = SHA256.Create())
+            await using (var verifyStream = File.OpenRead(tempDownloadPath))
             {
-                try { File.Delete(tempExePath); } catch { }
-                throw new InvalidOperationException("File cập nhật tải về bị lỗi (sai hash). Vui lòng thử lại sau.");
+                byte[] hashBytes = await sha256.ComputeHashAsync(verifyStream, ct);
+                string actualHash = Convert.ToHexString(hashBytes);
+
+                if (!actualHash.Equals(expectedSha256, StringComparison.OrdinalIgnoreCase))
+                {
+                    try { File.Delete(tempDownloadPath); } catch { }
+                    throw new InvalidOperationException("File cập nhật tải về bị lỗi (sai hash). Vui lòng thử lại sau.");
+                }
             }
 
-            return tempExePath;
+            // Asset không phải zip (vd .exe của Windows tải thẳng) -> chính nó đã là file thực thi.
+            if (!urlExtension.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                return tempDownloadPath;
+
+            return ExtractExecutableFromZip(tempDownloadPath);
+        }
+
+        /// <summary>
+        /// Giải nén file zip vừa tải về, tìm đúng file thực thi bên trong (bản publish single-file chỉ
+        /// có đúng 1 file), copy nó ra 1 đường dẫn riêng rồi dọn dẹp zip + thư mục giải nén tạm.
+        /// </summary>
+        private static string ExtractExecutableFromZip(string zipPath)
+        {
+            string extractDir = Path.Combine(Path.GetTempPath(), "VietHoaInstaller_update_extract_" + Guid.NewGuid().ToString("N"));
+
+            try
+            {
+                Directory.CreateDirectory(extractDir);
+                ZipFile.ExtractToDirectory(zipPath, extractDir);
+
+                string[] extractedFiles = Directory.GetFiles(extractDir, "*", SearchOption.AllDirectories);
+                if (extractedFiles.Length == 0)
+                    throw new InvalidOperationException("File cập nhật (.zip) tải về không chứa file nào. Vui lòng thử lại sau.");
+
+                // Bản publish single-file chỉ đóng gói đúng 1 file thực thi trong zip -> ưu tiên khớp
+                // đúng tên assembly ("PatchVietHoaInstaller"/"PatchVietHoaInstaller.exe"); nếu không khớp
+                // và zip chỉ có 1 file thì dùng luôn file đó.
+                string? match = extractedFiles.FirstOrDefault(f =>
+                    Path.GetFileNameWithoutExtension(f).Equals("PatchVietHoaInstaller", StringComparison.OrdinalIgnoreCase));
+
+                string sourceFile = match ?? (extractedFiles.Length == 1
+                    ? extractedFiles[0]
+                    : throw new InvalidOperationException(
+                        "File cập nhật (.zip) chứa nhiều file, không xác định được đâu là file thực thi chính. " +
+                        "Vui lòng tải bản mới tại trang GitHub của phần mềm."));
+
+                string finalExtension = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : "";
+                string finalPath = Path.Combine(Path.GetTempPath(), "VietHoaInstaller_update_" + Guid.NewGuid().ToString("N") + finalExtension);
+                File.Copy(sourceFile, finalPath, overwrite: true);
+
+                return finalPath;
+            }
+            finally
+            {
+                try { File.Delete(zipPath); } catch { }
+                try { Directory.Delete(extractDir, recursive: true); } catch { }
+            }
         }
 
         /// <summary>
