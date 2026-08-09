@@ -407,7 +407,7 @@ namespace VietHoaInstaller
             {
                 var confirm = await SimpleMessageBox.ShowAsync(owner,
                     "Bạn có chắc muốn gỡ bản Việt hóa và khôi phục file gốc?",
-                    "Xác nhận gỡ Việt hóa", SimpleMessageBoxButtons.YesNo, emphasizeCancel: false);
+                    "Xác nhận gỡ Việt hóa", SimpleMessageBoxButtons.YesNo, emphasizeCancel: false, confirmCooldownSeconds: 3);
 
                 if (confirm != SimpleMessageBoxResult.Yes)
                     return;

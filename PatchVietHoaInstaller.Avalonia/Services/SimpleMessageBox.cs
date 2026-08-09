@@ -4,6 +4,8 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
+using System;
 using System.Threading.Tasks;
 
 namespace VietHoaInstaller.Services
@@ -32,9 +34,15 @@ namespace VietHoaInstaller.Services
         /// dừng lại đọc kỹ trước khi chọn "Có" — không đặt hành động phá hủy vào đúng vị trí/màu mà tay
         /// quen bấm nhanh.
         /// </param>
+        /// <param name="confirmCooldownSeconds">
+        /// Nút xác nhận ("Có"/"OK") bị khóa (disable) trong N giây đầu, hiện đếm ngược ngay trên chữ
+        /// ("Có (5)" -> "Có (4)" -> ... -> "Có"), chỉ bấm được sau khi đếm về 0. Dùng cho xác nhận hành
+        /// động PHÁ HỦY/KHÔNG THỂ HOÀN TÁC — ép người dùng phải chờ đủ thời gian đọc kỹ nội dung, không
+        /// thể bấm ngay theo phản xạ dù đã đảo vị trí/màu nút (emphasizeCancel). 0 = không cooldown.
+        /// </param>
         public static async Task<SimpleMessageBoxResult> ShowAsync(
             Window owner, string message, string title, SimpleMessageBoxButtons buttons = SimpleMessageBoxButtons.Ok,
-            bool emphasizeCancel = false)
+            bool emphasizeCancel = false, int confirmCooldownSeconds = 0)
         {
             var tcs = new TaskCompletionSource<SimpleMessageBoxResult>();
 
@@ -65,6 +73,38 @@ namespace VietHoaInstaller.Services
                 tcs.TrySetResult(result);
                 dialog.Close();
             }
+
+            // Áp cooldown lên nút xác nhận: disable, hiện đếm ngược trên chữ, tự enable + trả lại chữ gốc
+            // khi về 0. Trả về DispatcherTimer để dialog.Closed có thể Stop() nếu người dùng đóng dialog
+            // (Alt+F4/nút X) trước khi đếm xong -> tránh timer chạy ngầm sau khi dialog đã đóng.
+            DispatcherTimer? StartConfirmCooldown(Button confirmBtn, string baseText, int seconds)
+            {
+                if (seconds <= 0) return null;
+
+                confirmBtn.IsEnabled = false;
+                int remaining = seconds;
+                confirmBtn.Content = $"{baseText} ({remaining})";
+
+                var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+                timer.Tick += (_, _) =>
+                {
+                    remaining--;
+                    if (remaining <= 0)
+                    {
+                        timer.Stop();
+                        confirmBtn.Content = baseText;
+                        confirmBtn.IsEnabled = true;
+                    }
+                    else
+                    {
+                        confirmBtn.Content = $"{baseText} ({remaining})";
+                    }
+                };
+                timer.Start();
+                return timer;
+            }
+
+            DispatcherTimer? cooldownTimer = null;
 
             // ===== Title bar tự vẽ (khớp MainWindow: kéo di chuyển + nút đóng riêng) =====
             var titleText = new TextBlock
@@ -158,12 +198,16 @@ namespace VietHoaInstaller.Services
                     buttonPanel.Children.Add(noBtn);
                     buttonPanel.Children.Add(yesBtn);
                 }
+
+                cooldownTimer = StartConfirmCooldown(yesBtn, "Có", confirmCooldownSeconds);
             }
             else
             {
                 var okBtn = new Button { Content = "OK", Width = 100, Classes = { "PrimaryButton" } };
                 okBtn.Click += (_, _) => CloseWith(SimpleMessageBoxResult.Ok);
                 buttonPanel.Children.Add(okBtn);
+
+                cooldownTimer = StartConfirmCooldown(okBtn, "OK", confirmCooldownSeconds);
             }
 
             var contentPanel = new DockPanel();
@@ -195,9 +239,14 @@ namespace VietHoaInstaller.Services
             outerBorder.Child = clipBorder;
             dialog.Content = outerBorder;
 
-            // Nếu người dùng đóng bằng phím Alt+F4 thay vì bấm nút bên trong -> coi như "No"/"Ok" mặc định
-            dialog.Closed += (_, _) => tcs.TrySetResult(
-                buttons == SimpleMessageBoxButtons.YesNo ? SimpleMessageBoxResult.No : SimpleMessageBoxResult.Ok);
+            // Nếu người dùng đóng bằng phím Alt+F4 thay vì bấm nút bên trong -> coi như "No"/"Ok" mặc định.
+            // Đồng thời dừng timer cooldown nếu còn đang chạy (đóng dialog giữa chừng) -> tránh timer chạy
+            // ngầm/leak sau khi dialog đã đóng.
+            dialog.Closed += (_, _) =>
+            {
+                cooldownTimer?.Stop();
+                tcs.TrySetResult(buttons == SimpleMessageBoxButtons.YesNo ? SimpleMessageBoxResult.No : SimpleMessageBoxResult.Ok);
+            };
 
             await dialog.ShowDialog(owner);
             return await tcs.Task;
