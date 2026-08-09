@@ -7,6 +7,7 @@
         SystemDecorations="None"
         TransparencyLevelHint="Transparent"
         CanResize="False"
+        Icon="avares://PatchVietHoaInstaller/Assets/Dich2000sICON.ico"
         Background="Transparent">
 
 	<!-- Lớp nền trong suốt để chứa bóng đổ -->
@@ -75,7 +76,7 @@
 						<Button x:Name="BtnMinimize" Classes="TitleBarButton" Click="BtnMinimize_Click">
 							<Path Classes="TitleBarIcon" Data="{StaticResource IconMinimize}" Width="11" Height="11" Stretch="Uniform"/>
 						</Button>
-						<Button x:Name="BtnClose" Classes="CloseButton" Click="BtnClose_Click">
+						<Button x:Name="BtnClose" Classes="TitleBarButton CloseButton" Click="BtnClose_Click">
 							<Path Classes="TitleBarIcon" Data="{StaticResource IconClose}" Width="11" Height="11" Stretch="Uniform"/>
 						</Button>
 					</StackPanel>

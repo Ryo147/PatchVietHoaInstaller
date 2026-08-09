@@ -1,5 +1,7 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using System.Threading.Tasks;
@@ -12,15 +14,39 @@ namespace VietHoaInstaller.Services
     /// <summary>
     /// GHI CHÚ PORT: Avalonia không có sẵn System.Windows.MessageBox như WPF. Đây là bản thay thế tối
     /// giản (1 Window nhỏ, modal, giữa màn hình chủ) đủ dùng cho các hộp thoại xác nhận/báo lỗi/cảnh báo
-    /// đơn giản đang dùng khắp các Page. Không cố gắng bắt chước 100% giao diện MessageBox của Windows —
-    /// chỉ cần đúng hành vi (modal, trả về lựa chọn của người dùng) và chạy được trên mọi OS.
+    /// đơn giản đang dùng khắp các Page.
+    ///
+    /// GHI CHÚ GIAO DIỆN: dùng custom chrome (SystemDecorations="None" + title bar/nút tự vẽ) giống hệt
+    /// MainWindow thay vì để Windows tự vẽ title bar mặc định — trước đây SystemDecorations="Full" khiến
+    /// hộp thoại hiện ra với thanh tiêu đề xám, icon mặc định, nút OK/Yes/No vuông vức không hover, lệch
+    /// hẳn tông màu tối của cả app. 2 nút dùng lại Classes="PrimaryButton"/"SecondaryButton" đã có sẵn
+    /// hover + bo góc từ App.axaml, không tự vẽ style riêng để tránh lệch pha với phần còn lại của app.
     /// </summary>
     public static class SimpleMessageBox
     {
+        /// <param name="emphasizeCancel">
+        /// Dùng cho xác nhận hành động PHÁ HỦY/KHÔNG THỂ HOÀN TÁC (gỡ Việt hóa, xóa file...). Khi bật:
+        /// đảo cả vị trí lẫn kiểu nút — "Không" (an toàn) chuyển sang vị trí phải + style PrimaryButton
+        /// (vị trí/màu người dùng quen bấm theo phản xạ/Enter), "Có" (phá hủy) chuyển sang trái + style
+        /// SecondaryButton nhạt hơn. Mục đích: phá vỡ phản xạ "bấm nút bên phải" để buộc người dùng phải
+        /// dừng lại đọc kỹ trước khi chọn "Có" — không đặt hành động phá hủy vào đúng vị trí/màu mà tay
+        /// quen bấm nhanh.
+        /// </param>
         public static async Task<SimpleMessageBoxResult> ShowAsync(
-            Window owner, string message, string title, SimpleMessageBoxButtons buttons = SimpleMessageBoxButtons.Ok)
+            Window owner, string message, string title, SimpleMessageBoxButtons buttons = SimpleMessageBoxButtons.Ok,
+            bool emphasizeCancel = false)
         {
             var tcs = new TaskCompletionSource<SimpleMessageBoxResult>();
+
+            // GHI CHÚ: các brush/geometry này khai báo ở Application.Resources (App.axaml), KHÔNG phải
+            // Window.Resources riêng của owner -> phải tra qua Application.Current, không phải
+            // owner.Resources (bug cũ: owner.Resources.TryGetValue luôn fail âm thầm, rơi về màu đen
+            // mặc định — trùng hợp gần giống tông tối của app nên không ai để ý).
+            var appRes = Avalonia.Application.Current?.Resources;
+            IBrush bgBrush = appRes?.TryGetValue("BgDarkBrush", out var bg) == true ? (IBrush?)bg ?? Brushes.Black : Brushes.Black;
+            IBrush borderBrush = appRes?.TryGetValue("BorderBrush1", out var bd) == true ? (IBrush?)bd ?? Brushes.Gray : Brushes.Gray;
+            IBrush textBrush = appRes?.TryGetValue("TextPrimaryBrush", out var tx) == true ? (IBrush?)tx ?? Brushes.White : Brushes.White;
+            Geometry? closeIconGeometry = appRes?.TryGetValue("IconClose", out var ic) == true ? ic as Geometry : null;
 
             var dialog = new Window
             {
@@ -29,23 +55,9 @@ namespace VietHoaInstaller.Services
                 SizeToContent = SizeToContent.Height,
                 CanResize = false,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Background = owner.Resources.TryGetValue("BgDarkBrush", out var bg) ? (IBrush?)bg : Brushes.Black,
-                SystemDecorations = SystemDecorations.Full
-            };
-
-            var messageText = new TextBlock
-            {
-                Text = message,
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                Margin = new Avalonia.Thickness(20, 20, 20, 10)
-            };
-
-            var buttonPanel = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Avalonia.Thickness(0, 0, 16, 16),
-                Spacing = 8
+                Background = Brushes.Transparent,
+                SystemDecorations = SystemDecorations.None,
+                TransparencyLevelHint = new[] { WindowTransparencyLevel.Transparent },
             };
 
             void CloseWith(SimpleMessageBoxResult result)
@@ -54,32 +66,136 @@ namespace VietHoaInstaller.Services
                 dialog.Close();
             }
 
-            if (buttons == SimpleMessageBoxButtons.YesNo)
+            // ===== Title bar tự vẽ (khớp MainWindow: kéo di chuyển + nút đóng riêng) =====
+            var titleText = new TextBlock
             {
-                var yesBtn = new Button { Content = "Có", Padding = new Avalonia.Thickness(16, 6) };
-                yesBtn.Click += (_, _) => CloseWith(SimpleMessageBoxResult.Yes);
+                Text = title,
+                Foreground = textBrush,
+                FontSize = 13,
+                FontWeight = Avalonia.Media.FontWeight.SemiBold,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(14, 0, 0, 0),
+            };
 
-                var noBtn = new Button { Content = "Không", Padding = new Avalonia.Thickness(16, 6) };
-                noBtn.Click += (_, _) => CloseWith(SimpleMessageBoxResult.No);
-
-                buttonPanel.Children.Add(noBtn);
-                buttonPanel.Children.Add(yesBtn);
+            var closeBtn = new Button { Classes = { "TitleBarButton", "CloseButton" } };
+            if (closeIconGeometry is not null)
+            {
+                closeBtn.Content = new Avalonia.Controls.Shapes.Path
+                {
+                    Classes = { "TitleBarIcon" },
+                    Data = closeIconGeometry,
+                    Width = 11,
+                    Height = 11,
+                    Stretch = Stretch.Uniform,
+                };
             }
             else
             {
-                var okBtn = new Button { Content = "OK", Padding = new Avalonia.Thickness(16, 6) };
+                // Không tìm thấy resource icon (không nên xảy ra) -> vẫn có chữ "X" để không mất nút đóng.
+                closeBtn.Content = new TextBlock { Text = "✕", FontSize = 12, Foreground = textBrush };
+            }
+            closeBtn.Click += (_, _) => CloseWith(buttons == SimpleMessageBoxButtons.YesNo ? SimpleMessageBoxResult.No : SimpleMessageBoxResult.Ok);
+
+            var titleBar = new Grid
+            {
+                Height = 40,
+                Background = new SolidColorBrush(Color.Parse("#161A24")),
+                ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+            };
+            titleBar.Children.Add(titleText);
+            Grid.SetColumn(closeBtn, 1);
+            titleBar.Children.Add(closeBtn);
+            titleBar.PointerPressed += (_, e) =>
+            {
+                if (e.GetCurrentPoint(dialog).Properties.IsLeftButtonPressed)
+                    dialog.BeginMoveDrag(e);
+            };
+
+            // ===== Nội dung =====
+            var messageText = new TextBlock
+            {
+                Text = message,
+                Foreground = textBrush,
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                Margin = new Thickness(20, 20, 20, 10),
+            };
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 0, 16, 16),
+                Spacing = 8,
+            };
+
+            if (buttons == SimpleMessageBoxButtons.YesNo)
+            {
+                var noBtn = new Button
+                {
+                    Content = "Không",
+                    Width = 100,
+                    Classes = { emphasizeCancel ? "PrimaryButton" : "SecondaryButton" },
+                };
+                noBtn.Click += (_, _) => CloseWith(SimpleMessageBoxResult.No);
+
+                var yesBtn = new Button
+                {
+                    Content = "Có",
+                    Width = 100,
+                    Classes = { emphasizeCancel ? "SecondaryButton" : "PrimaryButton" },
+                };
+                yesBtn.Click += (_, _) => CloseWith(SimpleMessageBoxResult.Yes);
+
+                // emphasizeCancel: đảo vị trí -> "Có" (phá hủy) sang trái, "Không" (an toàn) sang phải,
+                // phá vỡ đúng chỗ tay quen bấm nhanh/Enter.
+                if (emphasizeCancel)
+                {
+                    buttonPanel.Children.Add(yesBtn);
+                    buttonPanel.Children.Add(noBtn);
+                }
+                else
+                {
+                    buttonPanel.Children.Add(noBtn);
+                    buttonPanel.Children.Add(yesBtn);
+                }
+            }
+            else
+            {
+                var okBtn = new Button { Content = "OK", Width = 100, Classes = { "PrimaryButton" } };
                 okBtn.Click += (_, _) => CloseWith(SimpleMessageBoxResult.Ok);
                 buttonPanel.Children.Add(okBtn);
             }
 
-            var layout = new DockPanel();
+            var contentPanel = new DockPanel();
             DockPanel.SetDock(buttonPanel, Dock.Bottom);
-            layout.Children.Add(buttonPanel);
-            layout.Children.Add(messageText);
+            contentPanel.Children.Add(buttonPanel);
+            contentPanel.Children.Add(messageText);
 
-            dialog.Content = layout;
+            var body = new Grid { RowDefinitions = new RowDefinitions("Auto,*") };
+            body.Children.Add(titleBar);
+            Grid.SetRow(contentPanel, 1);
+            body.Children.Add(contentPanel);
 
-            // Nếu người dùng đóng bằng nút "X" của dialog thay vì bấm nút bên trong -> coi như "No"/"Ok" mặc định
+            // Border ngoài bo góc + đổ bóng, khớp hệt MainWindow (Margin để chừa chỗ cho bóng đổ).
+            var outerBorder = new Border
+            {
+                Margin = new Thickness(10),
+                Background = bgBrush,
+                CornerRadius = new CornerRadius(10),
+                BoxShadow = BoxShadows.Parse("0 0 25 0 #99000000"),
+            };
+            var clipBorder = new Border
+            {
+                BorderBrush = borderBrush,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(10),
+                ClipToBounds = true,
+                Child = body,
+            };
+            outerBorder.Child = clipBorder;
+            dialog.Content = outerBorder;
+
+            // Nếu người dùng đóng bằng phím Alt+F4 thay vì bấm nút bên trong -> coi như "No"/"Ok" mặc định
             dialog.Closed += (_, _) => tcs.TrySetResult(
                 buttons == SimpleMessageBoxButtons.YesNo ? SimpleMessageBoxResult.No : SimpleMessageBoxResult.Ok);
 

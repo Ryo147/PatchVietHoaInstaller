@@ -8,6 +8,11 @@
 		<AssemblyName>PatchVietHoaInstaller</AssemblyName>
 		<RootNamespace>PatchVietHoaInstaller</RootNamespace>
 
+		<!-- Icon nhúng thẳng vào file .exe (Explorer, taskbar khi chưa chạy, shortcut...). Đây LÀ CƠ CHẾ
+		     KHÁC với avares:// dùng trong code (Window.Icon, TrayIcon) — thiếu dòng này thì dù code có
+		     đúng bao nhiêu, bản thân file .exe vẫn không có icon nhúng sẵn. -->
+		<ApplicationIcon>Assets\Dich2000sICON.ico</ApplicationIcon>
+
 		<!-- Nguồn duy nhất khai báo version của app. Mỗi lần release, chỉ cần sửa số này ở đây -->
 		<Version>4.3.0</Version>
 
@@ -17,6 +22,14 @@
 		<Title>PatchVietHoaInstaller</Title>
 
 		<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+
+		<!--
+			Nén toàn bộ bundle bên trong file .exe single-file lúc publish -> giảm thêm đáng kể dung
+			lượng (thường 30-40%) so với publish single-file không nén. Đánh đổi: khởi động app chậm
+			hơn 1 chút vì phải giải nén lúc mở (không đáng kể trên máy hiện đại).
+			Chỉ có tác dụng khi publish kèm -p:PublishSingleFile=true; vô hại lúc build/debug thường.
+		-->
+		<EnableCompressionInSingleFile Condition="'$(PublishSingleFile)' == 'true'">true</EnableCompressionInSingleFile>
 	</PropertyGroup>
 
 	<!--
@@ -27,6 +40,7 @@
 		dotnet publish -r linux-x64 -p:PublishSingleFile=true -p:SelfContained=true
 
 		RuntimeIdentifier để trống ở đây, chỉ định lúc publish qua -r để 1 project build được cả 2 OS.
+		EnableCompressionInSingleFile đã bật sẵn ở trên khi PublishSingleFile=true -> không cần thêm flag nén thủ công.
 	-->
 
 	<ItemGroup>

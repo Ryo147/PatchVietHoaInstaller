@@ -53,7 +53,7 @@ namespace VietHoaInstaller
             WindowIcon? icon = null;
             try
             {
-                using var stream = AssetLoader.Open(new Uri("avares://VietHoaInstaller.Avalonia/Assets/Dich2000sICON.ico"));
+                using var stream = AssetLoader.Open(new Uri("avares://PatchVietHoaInstaller/Assets/Dich2000sICON.ico"));
                 icon = new WindowIcon(stream);
             }
             catch
