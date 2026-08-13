@@ -60,7 +60,7 @@ Xem báo cáo chi tiết trên VirusTotal: [Windows](https://www.virustotal.com/
 
 - Cải thiện tính năng Kiểm tra phiên bản PatchVH.
 - Sửa lỗi tải Patch sai hash trên Linux.
-- Thêm dịch vụ thông báo native (NotificationService) cho hệ điều hành.
+- Thêm tính năng thông báo native cho hệ điều hành.
 
 ### 4.1.0 (2026-07-27)
 
@@ -71,9 +71,6 @@ Xem báo cáo chi tiết trên VirusTotal: [Windows](https://www.virustotal.com/
 ### 4.0.0 (2026-07-27)
 
 - **Hỗ trợ thêm HĐH Linux** thông qua port sang Avalonia UI framework (cross-platform).
-- Cấu trúc lại toàn bộ dự án với kiến trúc mới: tách biệt các module Services, Models, Converters.
-- Thêm các trang: About, Home, Library, Settings, Updates.
-- Thêm dịch vụ: Download, GitHub Release, Patch Installer, Patch Update Checker, Platform Helper, Settings Manager, Steam Locator.
 - *Lưu ý: Bản Linux có thể có lỗi hoặc bug vì không có môi trường thử nghiệm đầy đủ.*
 
 
