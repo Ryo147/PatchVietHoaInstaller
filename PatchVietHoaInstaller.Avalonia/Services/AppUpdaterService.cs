@@ -175,7 +175,10 @@ namespace VietHoaInstaller.Services
             string currentExePath = Environment.ProcessPath
                 ?? throw new InvalidOperationException("Không xác định được đường dẫn file .exe hiện tại.");
 
-            string batPath = Path.Combine(Path.GetTempPath(), "VietHoaInstaller_apply_update.bat");
+            // Tên file random (GUID) thay vì cố định: tránh symlink/race attack trên temp folder dùng
+            // chung nhiều user — trước đây dùng tên cố định, kẻ tấn công cùng máy có thể pre-place symlink
+            // tại đúng đường dẫn này để bị ghi đè nội dung script vào file bất kỳ.
+            string batPath = Path.Combine(Path.GetTempPath(), "VietHoaInstaller_apply_update_" + Guid.NewGuid().ToString("N") + ".bat");
 
             // Đợi 2 giây cho app thoát hẳn (giải phóng khóa file) -> thử move đè, nếu vẫn bị khóa thì thử lại vài lần
             // -> khởi động lại app mới -> tự xóa chính file .bat này.
@@ -208,7 +211,9 @@ namespace VietHoaInstaller.Services
             string currentExePath = Environment.ProcessPath
                 ?? throw new InvalidOperationException("Không xác định được đường dẫn file thực thi hiện tại.");
 
-            string shPath = Path.Combine(Path.GetTempPath(), "viethoainstaller_apply_update.sh");
+            // Tên file random (GUID): /tmp thường là thư mục share chung giữa các user trên Linux, tên cố
+            // định trước đây có thể bị user khác pre-place symlink để chiếm quyền ghi vào file bất kỳ.
+            string shPath = Path.Combine(Path.GetTempPath(), "viethoainstaller_apply_update_" + Guid.NewGuid().ToString("N") + ".sh");
 
             // Tương đương bản Windows: đợi app thoát hẳn -> cấp quyền thực thi cho file mới (Linux không
             // tự làm việc này như Windows) -> move đè -> khởi động lại -> tự xóa script.

@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using System;
+using System.Threading.Tasks;
 using VietHoaInstaller.Services;
 
 namespace VietHoaInstaller
@@ -43,6 +44,7 @@ namespace VietHoaInstaller
                 desktop.MainWindow = mainWindow;
 
                 InitializeTrayIcon();
+                _ = RunSelfIntegrityCheckAsync(mainWindow);
             }
 
             base.OnFrameworkInitializationCompleted();
@@ -103,6 +105,32 @@ namespace VietHoaInstaller
                 return;
             if (TrayIconInstance == null) return;
             TrayIconInstance.ToolTipText = $"{title}\n{message}";
+        }
+
+        /// <summary>
+        /// Kiểm tra ngầm (không chặn UI) xem chính file .exe đang chạy có khớp SHA-256 GitHub đã công bố
+        /// cho bản mới nhất hay không. Chỉ hiện cảnh báo khi CHẮC CHẮN sai khớp (Mismatch) — mọi trường
+        /// hợp không đủ dữ liệu (offline, bản dev, đang chạy bản cũ hơn...) đều im lặng bỏ qua, xem
+        /// SelfIntegrityService để biết chi tiết vì sao thiết kế vậy.
+        /// </summary>
+        private static async Task RunSelfIntegrityCheckAsync(Window owner)
+        {
+            var result = await Services.SelfIntegrityService.CheckAsync();
+            if (result.Status != Services.SelfIntegrityStatus.Mismatch)
+                return;
+
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                await Services.SimpleMessageBox.ShowAsync(owner,
+                    "File thực thi bạn đang chạy KHÔNG khớp checksum SHA-256 mà nhóm Dịch 2000s công bố " +
+                    "chính thức trên GitHub cho phiên bản này. Đây có thể là dấu hiệu file đã bị chỉnh " +
+                    "sửa/chèn mã độc bởi bên thứ ba.\n\n" +
+                    "Khuyến nghị: NGỪNG dùng bản này, quét virus toàn máy, và chỉ tải lại từ đúng trang " +
+                    "GitHub Releases chính thức: github.com/Ryo147/PatchVietHoaInstaller/releases " +
+                    "hoặc Dich2000s.vercel.app" +
+                    (result.Detail != null ? $"\n\n{result.Detail}" : ""),
+                    "CẢNH BÁO XÁC THỰC FILE", Services.SimpleMessageBoxButtons.Ok);
+            });
         }
     }
 }

@@ -239,6 +239,14 @@ namespace VietHoaInstaller.Services
             string extractDir = Path.Combine(tempDir, "extracted_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tempDir);
 
+            // Đường dẫn tempDir cố định theo profile (để resume tải dở dang giữa các lần chạy) trên máy
+            // nhiều người dùng thì attacker có thể pre-place symlink trỏ nơi khác tại đúng đường dẫn này
+            // trước khi CreateDirectory ở trên chạy tới (CreateDirectory không ghi đè symlink có sẵn) ->
+            // mọi file ghi vào bên trong (zip, extract...) sẽ đi lạc theo symlink. Chặn sớm nếu phát hiện.
+            if (new DirectoryInfo(tempDir).Attributes.HasFlag(FileAttributes.ReparsePoint))
+                throw new InvalidOperationException(
+                    $"Thư mục tạm '{tempDir}' là symlink/junction bất thường, có thể máy đang bị can thiệp. Vui lòng xóa thủ công thư mục này rồi thử lại.");
+
             bool installSucceeded = false;
             try
             {

@@ -15,6 +15,10 @@
 			<TextBlock x:Name="TxtVersionGroup" Foreground="{StaticResource TextMutedBrush}" FontSize="11.5"
 			           HorizontalAlignment="Center" Margin="0,4,0,0"/>
 
+			<TextBlock x:Name="TxtBuildAuthenticity" Foreground="{StaticResource TextMutedBrush}" FontSize="10.5"
+			           HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"
+			           Margin="0,10,0,0" Width="450"/>
+
 			<TextBlock Text="Phần mềm miễn phí giúp cài đặt các bản Việt hóa game do nhóm Dịch 2000s thực hiện. Mọi khoản phí được yêu cầu để lấy phần mềm này đều là lừa đảo."
 			           Foreground="{StaticResource TextMutedBrush}" FontSize="11.5" TextWrapping="Wrap"
 			           TextAlignment="Center" HorizontalAlignment="Center" Margin="0,12,0,0" Width="403"/>

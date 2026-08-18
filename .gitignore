@@ -19,6 +19,10 @@
 /tools/obj
 /tools/bin
 /.vscode
+
+# Token xác thực bản dựng — CHỈ giữ local, KHÔNG BAO GIỜ commit. Xem GenerateBuildAuthenticity
+# target trong VietHoaInstaller.csproj. Đổi nội dung file này mỗi khi muốn rotate token.
+BuildSecret.local.txt
 tools/OptimizeBanner/obj/Debug/net8.0/.NETCoreApp,Version=v8.0.AssemblyAttributes.cs
 tools/OptimizeBanner/obj/Debug/net8.0/OptimizeBanner.AssemblyInfo.cs
 tools/OptimizeBanner/obj/Debug/net8.0/OptimizeBanner.AssemblyInfoInputs.cache

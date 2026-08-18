@@ -88,4 +88,8 @@
 		</ItemGroup>
 	</Target>
 
+	<ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)BuildSecret.local.txt')">
+		<EmbeddedResource Include="$(MSBuildThisFileDirectory)BuildSecret.local.txt" LogicalName="VietHoaInstaller.BuildSecret.txt" />
+	</ItemGroup>
+
 </Project>

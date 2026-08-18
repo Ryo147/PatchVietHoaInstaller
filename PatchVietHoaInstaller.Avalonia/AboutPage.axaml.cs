@@ -13,6 +13,16 @@ namespace VietHoaInstaller
         {
             InitializeComponent();
             TxtVersionGroup.Text = $"Phiên bản {AppVersion} · Nhóm Dịch 2000s";
+
+            if (string.IsNullOrWhiteSpace(BuildAuthenticity.Token))
+            {
+                TxtBuildAuthenticity.Text = "KHÔNG XÁC MINH ĐƯỢC NGUỒN GỐC BẢN DỰNG.\nVui lòng chỉ tải file từ Dich2000s.vercel.app hoặc GitHub chính thức của nhóm.";
+                TxtBuildAuthenticity.Foreground = Avalonia.Media.Brushes.OrangeRed;
+            }
+            else
+            {
+                TxtBuildAuthenticity.Text = $"Mã xác thực bản dựng (SHA-256): {BuildAuthenticity.Token}";
+            }
         }
 
         private void Link_Discord_Click(object? sender, RoutedEventArgs e)
