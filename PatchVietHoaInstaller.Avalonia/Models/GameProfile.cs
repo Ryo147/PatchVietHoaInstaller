@@ -126,7 +126,7 @@ namespace VietHoaInstaller.Models
                 GitHubRepo = "PatchVH",
                 GitHubReleaseTag = "2", // TODO: điền tag/release thật của DMC5 trước khi bỏ IsComingSoon, để không dùng chung "latest" với game khác
                 AssetNameContains = "DMC5",
-                InstallNote = "Đây là PATCH đi kèm với FluffyModManager nên bạn cần CHỌN THƯ MỤC THỦ CÔNG. Bản dịch có sử dụng phương ngữ miền Nam vào lời thoại nhân vật. Cân nhắc trước khi chơi."
+                InstallNote = "Đây là PATCH đi kèm với FluffyModManager nên bạn cần CHỌN THƯ MỤC THỦ CÔNG. Bản dịch có sử dụng phương ngữ miền Tây. Cân nhắc trước khi chơi."
             },
             new GameProfile
             {

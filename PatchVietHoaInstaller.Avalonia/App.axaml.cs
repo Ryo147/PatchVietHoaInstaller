@@ -44,7 +44,7 @@ namespace VietHoaInstaller
                 desktop.MainWindow = mainWindow;
 
                 InitializeTrayIcon();
-                _ = RunSelfIntegrityCheckAsync(mainWindow);
+                _ = RunStartupSecurityChecksAsync(mainWindow);
             }
 
             base.OnFrameworkInitializationCompleted();
@@ -105,6 +105,60 @@ namespace VietHoaInstaller
                 return;
             if (TrayIconInstance == null) return;
             TrayIconInstance.ToolTipText = $"{title}\n{message}";
+        }
+
+        /// <summary>
+        /// Gộp các bước kiểm tra bảo mật chạy ngầm lúc khởi động app: (1) BuildAuthenticity — token
+        /// nhúng sẵn lúc build, kiểm tra tức thời không cần mạng; (2) SelfIntegrityService — so SHA-256
+        /// file đang chạy với digest GitHub, cần gọi mạng. Đây là 2 lớp phòng thủ ĐỘC LẬP với nhau (xem
+        /// ghi chú trong SelfIntegrityService.cs), nên chạy cả hai chứ không thay thế nhau. Chờ 1 nhịp
+        /// ngắn để MainWindow kịp hiện lên trước, tránh MessageBox cảnh báo bật ra đè lên lúc cửa sổ
+        /// chính còn đang khởi tạo/chưa activate — SimpleMessageBox cần owner window đã hiển thị để
+        /// định vị/căn giữa đúng.
+        /// </summary>
+        private static async Task RunStartupSecurityChecksAsync(Window owner)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+
+            await RunBuildAuthenticityCheckAsync(owner);
+            await RunSelfIntegrityCheckAsync(owner);
+
+            // Chỗ này để thêm các bước security-check khác sau này (nếu có), theo cùng pattern:
+            // âm thầm return khi không đủ dữ liệu để kết luận, chỉ popup khi CHẮC CHẮN có vấn đề.
+        }
+
+        /// <summary>
+        /// Kiểm tra tức thời (không cần mạng): file .exe đang chạy có được build kèm BuildSecret.local.txt
+        /// hay không (nhúng thành <see cref="Services.BuildAuthenticity.Token"/> lúc build, xem
+        /// VietHoaInstaller.csproj — file secret đó chỉ tồn tại trên máy build chính thức của nhóm,
+        /// không commit vào repo). Bỏ qua khi đang chạy bản dev qua "dotnet run" (ProcessPath không
+        /// khớp tên PatchVietHoaInstaller) — lúc dev bình thường máy sẽ không có BuildSecret.local.txt,
+        /// KHÔNG coi đó là dấu hiệu bất thường. Chỉ cảnh báo khi đây LÀ bản .exe đã publish nhưng lại
+        /// thiếu token, tức rất có thể không phải bản do chính nhóm build & phát hành (tự build lại từ
+        /// source rồi phát tán, hoặc file đã bị đóng gói lại).
+        /// </summary>
+        private static async Task RunBuildAuthenticityCheckAsync(Window owner)
+        {
+            string? processPath = Environment.ProcessPath;
+            string exeNameNoExt = string.IsNullOrWhiteSpace(processPath)
+                ? string.Empty
+                : System.IO.Path.GetFileNameWithoutExtension(processPath);
+            if (!string.Equals(exeNameNoExt, "PatchVietHoaInstaller", StringComparison.OrdinalIgnoreCase))
+                return; // Đang chạy bản dev, bỏ qua kiểm tra.
+
+            if (!string.IsNullOrWhiteSpace(Services.BuildAuthenticity.Token))
+                return; // Có token -> bản build chính thức, không cần cảnh báo.
+
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                await Services.SimpleMessageBox.ShowAsync(owner,
+                    "Bản phần mềm bạn đang chạy KHÔNG có mã xác thực nguồn gốc bản dựng (BuildAuthenticity) " +
+                    "mà nhóm Dịch 2000s nhúng khi phát hành chính thức. Đây có thể là bản tự build lại từ " +
+                    "source, hoặc file đã bị chỉnh sửa/đóng gói lại bởi bên thứ ba.\n\n" +
+                    "Khuyến nghị: chỉ tải bản cài đặt từ đúng trang GitHub Releases chính thức: " +
+                    "github.com/Ryo147/PatchVietHoaInstaller/releases hoặc\ndich2000s.vercel.app",
+                    "CẢNH BÁO NGUỒN GỐC BẢN DỰNG", Services.SimpleMessageBoxButtons.Ok);
+            });
         }
 
         /// <summary>

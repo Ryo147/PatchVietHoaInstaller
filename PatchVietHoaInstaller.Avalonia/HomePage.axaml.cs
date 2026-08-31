@@ -43,7 +43,6 @@ namespace VietHoaInstaller
             InitializeComponent();
             AppendLog($"Khởi động ứng dụng v{AppVersion}");
             LoadDefaultGame();
-            LoadLastGameFolder();
         }
 
         /// <summary>Thư mục game đang hiển thị trong ô đường dẫn — dùng khi shell cần lưu lại trước khi tự cập nhật.</summary>
@@ -128,30 +127,19 @@ namespace VietHoaInstaller
             if (!string.IsNullOrWhiteSpace(profile.InstallNote))
                 AppendLog($"LƯU Ý: {profile.InstallNote}");
 
-            // ===== XÓA đường dẫn cũ khi đổi game — bắt buộc chọn/dò lại thư mục đúng cho profile mới =====
+            // ===== XÓA đường dẫn cũ khi đổi game — rồi thử tự điền lại ĐÚNG thư mục đã ghi nhớ cho
+            // riêng game này (không còn dùng biến LastGameFolder dùng chung cho mọi game như trước). =====
             TxtGamePath.Text = "";
             BtnInstall.IsEnabled = false;
             BtnUninstall.IsEnabled = false;
             SetStatus("Chưa chọn thư mục", "#FFB454");
 
-            if (Directory.Exists(TxtGamePath.Text))
-                RefreshStatusForFolder(TxtGamePath.Text, showErrorDialog: false);
-        }
-
-        // ================= KHỞI ĐỘNG: TỰ ĐIỀN LẠI THƯ MỤC GAME LẦN TRƯỚC =================
-        private void LoadLastGameFolder()
-        {
             var settings = SettingsManager.Load();
-
-            if (!string.IsNullOrWhiteSpace(settings.LastGameFolder) && Directory.Exists(settings.LastGameFolder))
+            if (settings.GameFolders.TryGetValue(profile.Name, out var rememberedFolder) &&
+                !string.IsNullOrWhiteSpace(rememberedFolder) && Directory.Exists(rememberedFolder))
             {
-                TxtGamePath.Text = settings.LastGameFolder;
-                RefreshStatusForFolder(settings.LastGameFolder, showErrorDialog: false);
-            }
-            else
-            {
-                BtnInstall.IsEnabled = false;
-                BtnUninstall.IsEnabled = false;
+                TxtGamePath.Text = rememberedFolder;
+                RefreshStatusForFolder(rememberedFolder, showErrorDialog: false);
             }
         }
 
@@ -186,9 +174,12 @@ namespace VietHoaInstaller
 
             TxtGamePath.Text = folderPath;
 
-            var settings = SettingsManager.Load();
-            settings.LastGameFolder = folderPath;
-            SettingsManager.Save(settings);
+            if (_selectedProfile is { } browseProfile)
+            {
+                var settings = SettingsManager.Load();
+                settings.GameFolders[browseProfile.Name] = folderPath;
+                SettingsManager.Save(settings);
+            }
 
             await RefreshStatusForFolderAsync(folderPath, showErrorDialog: true);
         }
@@ -495,7 +486,7 @@ namespace VietHoaInstaller
             TxtGamePath.Text = foundFolder;
 
             var settings = SettingsManager.Load();
-            settings.LastGameFolder = foundFolder;
+            settings.GameFolders[profile.Name] = foundFolder;
             SettingsManager.Save(settings);
 
             await RefreshStatusForFolderAsync(foundFolder, showErrorDialog: true);

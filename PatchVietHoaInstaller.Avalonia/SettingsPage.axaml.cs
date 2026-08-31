@@ -41,9 +41,9 @@ namespace VietHoaInstaller
             ChkMinimizeToTray.IsChecked = settings.MinimizeToTrayOnClose;
             ChkAutoCheckPatch.IsChecked = settings.AutoCheckPatchUpdate;
             TxtPatchCheckInterval.Text = Math.Max(15, settings.PatchCheckIntervalMinutes).ToString();
-            TxtRememberedFolder.Text = string.IsNullOrWhiteSpace(settings.LastGameFolder)
+            TxtRememberedFolder.Text = settings.GameFolders.Count == 0
                 ? "(chưa có)"
-                : settings.LastGameFolder;
+                : $"{settings.GameFolders.Count} game đã ghi nhớ thư mục";
 
             _isLoading = false;
         }
@@ -134,13 +134,30 @@ namespace VietHoaInstaller
             TraySettingsChanged?.Invoke();
         }
 
-        private void BtnClearFolder_Click(object? sender, RoutedEventArgs e)
+        private async void BtnClearFolder_Click(object? sender, RoutedEventArgs e)
         {
             var settings = SettingsManager.Load();
-            settings.LastGameFolder = "";
+
+            if (settings.GameFolders.Count == 0)
+                return; // Không có gì để xóa — không cần làm phiền bằng dialog.
+
+            if (OwnerWindow is not { } owner) return;
+
+            var confirm = await SimpleMessageBox.ShowAsync(owner,
+                $"Xóa thư mục đã ghi nhớ cho TẤT CẢ {settings.GameFolders.Count} game? " +
+                "Lần cài/gỡ tiếp theo cho mỗi game sẽ phải chọn lại thư mục từ đầu (không xóa file game hay bản Việt hóa đã cài).",
+                "Xác nhận xóa thư mục đã ghi nhớ",
+                SimpleMessageBoxButtons.YesNo,
+                emphasizeCancel: true,
+                confirmCooldownSeconds: 3);
+
+            if (confirm != SimpleMessageBoxResult.Yes)
+                return;
+
+            settings.GameFolders.Clear();
             SettingsManager.Save(settings);
             TxtRememberedFolder.Text = "(chưa có)";
-            ToastRequested?.Invoke("Đã xóa thư mục đã ghi nhớ");
+            ToastRequested?.Invoke("Đã xóa thư mục đã ghi nhớ cho tất cả game");
         }
 
         private async void BtnClearLog_Click(object? sender, RoutedEventArgs e)
