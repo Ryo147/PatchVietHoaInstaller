@@ -1,0 +1,107 @@
+name: Build & Release PatchVietHoaInstaller
+
+# Chạy khi push tag dạng "v1.2.3" (khớp cách UpdatesPage.axaml.cs so sánh version qua
+# GitHubReleaseService.IsNewerVersion), hoặc chạy tay qua tab Actions khi cần build thử không release.
+on:
+  push:
+    tags:
+      - "*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write # cần để tạo Release + upload asset
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - rid: win-x64
+            os: windows-latest
+            # Asset Windows giữ nguyên .exe (tải thẳng, không cần giải nén) — đúng như
+            # AppUpdaterService.DownloadNewVersionAsync đang xử lý cho asset không phải .zip.
+            asset_name: PatchVietHoaInstaller_win-x64.exe
+            publish_file: PatchVietHoaInstaller.exe
+          - rid: linux-x64
+            os: ubuntu-latest
+            # QUAN TRỌNG: tên phải chứa "linux" — UpdatesPage.axaml.cs dùng assetHint="linux" để tìm
+            # đúng asset khi so sánh OS hiện tại (RuntimeInformation.IsOSPlatform), và phải là .zip vì
+            # AppUpdaterService.ExtractExecutableFromZip() chỉ tự giải nén khi đuôi file là ".zip".
+            asset_name: PatchVietHoaInstaller_linux-x64.zip
+            publish_file: PatchVietHoaInstaller
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      # Token xác thực bản dựng (xem Services/BuildAuthenticity.cs) — CHỈ nhúng khi secret đã được cấu
+      # hình trong repo (Settings > Secrets and variables > Actions > BUILD_SECRET). Không có secret vẫn
+      # build/publish bình thường, chỉ là Token sẽ rỗng (giống build của người fork repo tự build).
+      - name: Write build authenticity secret (nếu có cấu hình)
+        if: ${{ secrets.BUILD_SECRET != '' }}
+        shell: bash
+        run: echo "$BUILD_SECRET" > PatchVietHoaInstaller.Avalonia/BuildSecret.local.txt
+        env:
+          BUILD_SECRET: ${{ secrets.BUILD_SECRET }}
+
+      - name: Publish (${{ matrix.rid }})
+        shell: bash
+        run: |
+          dotnet publish PatchVietHoaInstaller.Avalonia/VietHoaInstaller.csproj \
+            -c Release \
+            -r ${{ matrix.rid }} \
+            -p:PublishSingleFile=true \
+            -p:SelfContained=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -o publish/${{ matrix.rid }}
+
+      # Linux cần quyền thực thi trước khi zip lại — nếu không, người dùng giải nén xong sẽ không chạy
+      # được file cho tới khi tự chmod tay (AppUpdaterService.LaunchUpdaterLinux có tự chmod khi TỰ CẬP
+      # NHẬT, nhưng lần cài lần đầu từ trang GitHub Releases thì không đi qua đường đó).
+      - name: Chmod +x (Linux)
+        if: matrix.rid == 'linux-x64'
+        run: chmod +x publish/${{ matrix.rid }}/${{ matrix.publish_file }}
+
+      - name: Zip (Linux)
+        if: matrix.rid == 'linux-x64'
+        shell: bash
+        run: |
+          cd publish/${{ matrix.rid }}
+          zip -r "../../${{ matrix.asset_name }}" "${{ matrix.publish_file }}"
+
+      - name: Rename (Windows)
+        if: matrix.rid == 'win-x64'
+        shell: bash
+        run: cp "publish/${{ matrix.rid }}/${{ matrix.publish_file }}" "${{ matrix.asset_name }}"
+
+      - name: Upload artifact (dùng giữa các job)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      # GitHub tự tính digest (sha256) cho asset upload theo cách này -> GitHubReleaseService.ExtractSha256Hex
+      # đọc được ngay, không cần tool tự tính hash rồi đính kèm file .sha256 riêng.
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
