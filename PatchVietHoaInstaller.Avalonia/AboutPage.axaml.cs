@@ -21,7 +21,15 @@ namespace VietHoaInstaller
             }
             else
             {
-                TxtBuildAuthenticity.Text = $"Mã xác thực bản dựng (SHA-256): {BuildAuthenticity.Token}";
+                // Ghi chú: đây là mã nội bộ (SHA-256 của BuildSecret.local.txt) để xác nhận bản build được
+                // tạo bởi CI chính thức của nhóm — KHÔNG phải checksum của file cài đặt (GitHub cũng hiện
+                // 1 mã SHA-256 khác cho từng file đính kèm trên trang Releases, dễ nhầm 2 mã này với
+                // nhau). Muốn kiểm tra file cài đặt có nguyên vẹn không, so khớp mã đó trên trang
+                // Releases, không phải mã hiện ở đây.
+                TxtBuildAuthenticity.Text =
+                    $"Mã xác thực bản dựng (SHA-256): {BuildAuthenticity.Token}\n" +
+                    "(Mã nội bộ xác nhận bản dựng chính thức - không phải checksum của phần mềm được " +
+                    "hiển thị trên trang GitHub Releases)";
             }
         }
 
