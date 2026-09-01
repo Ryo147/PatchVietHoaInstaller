@@ -31,6 +31,11 @@ jobs:
             publish_file: PatchVietHoaInstaller
 
     runs-on: ${{ matrix.os }}
+    env:
+      # Đưa secret vào biến môi trường cấp JOB trước — KHÔNG được dùng "secrets.BUILD_SECRET" trực tiếp
+      # trong "if:" (GitHub cố tình chặn, xem lỗi "Unrecognized named-value: 'secrets'" nếu làm vậy),
+      # phải so sánh qua "env." như bên dưới.
+      BUILD_SECRET: ${{ secrets.BUILD_SECRET }}
 
     steps:
       - name: Checkout
@@ -45,11 +50,9 @@ jobs:
       # hình trong repo (Settings > Secrets and variables > Actions > BUILD_SECRET). Không có secret vẫn
       # build/publish bình thường, chỉ là Token sẽ rỗng (giống build của người fork repo tự build).
       - name: Write build authenticity secret (nếu có cấu hình)
-        if: ${{ secrets.BUILD_SECRET != '' }}
+        if: ${{ env.BUILD_SECRET != '' }}
         shell: bash
         run: echo "$BUILD_SECRET" > PatchVietHoaInstaller.Avalonia/BuildSecret.local.txt
-        env:
-          BUILD_SECRET: ${{ secrets.BUILD_SECRET }}
 
       - name: Publish (${{ matrix.rid }})
         shell: bash
