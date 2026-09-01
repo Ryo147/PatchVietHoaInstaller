@@ -22,6 +22,11 @@ namespace VietHoaInstaller
     {
         public static TrayIcon? TrayIconInstance { get; private set; }
 
+        /// <summary>Cửa sổ chính hiện tại — dùng làm owner cho dialog báo lỗi khi crash xảy ra ở bất kỳ
+        /// đâu trong app (không riêng gì HomePage), qua HandleGlobalException(). Null nếu app chưa kịp
+        /// tạo MainWindow (crash cực sớm lúc khởi động) — ErrorReportService tự bỏ qua khi owner null.</summary>
+        public static Window? MainWindowInstance { get; private set; }
+
         /// <summary>Bắn ra khi người dùng bấm "Mở phần mềm" / double-click tray icon.</summary>
         public static event Action? OpenRequested;
 
@@ -42,6 +47,7 @@ namespace VietHoaInstaller
             {
                 var mainWindow = new MainWindow();
                 desktop.MainWindow = mainWindow;
+                MainWindowInstance = mainWindow;
 
                 InitializeTrayIcon();
                 _ = RunStartupSecurityChecksAsync(mainWindow);
@@ -185,6 +191,41 @@ namespace VietHoaInstaller
                     (result.Detail != null ? $"\n\n{result.Detail}" : ""),
                     "CẢNH BÁO XÁC THỰC FILE", Services.SimpleMessageBoxButtons.Ok);
             });
+        }
+
+        /// <summary>
+        /// Điểm hứng lỗi TOÀN CỤC — gắn từ Program.cs (AppDomain.UnhandledException +
+        /// TaskScheduler.UnobservedTaskException) để bắt được cả những lỗi xảy ra NGOÀI 2 chỗ cài/gỡ
+        /// Việt hóa ở HomePage (nơi trước đây là chỗ DUY NHẤT có luồng "báo lỗi cho nhóm dịch"). Ví dụ:
+        /// lỗi ở SettingsPage, LibraryPage, UpdatesPage, hoặc bất kỳ Task chạy nền nào quên try-catch.
+        ///
+        /// GIỚI HẠN THỰC TẾ cần biết: AppDomain.UnhandledException thường bắn ra khi .NET runtime ĐÃ
+        /// QUYẾT ĐỊNH process sắp bị treminate (đặc biệt lỗi trên thread không phải UI) — tức là dialog
+        /// báo lỗi có thể KHÔNG kịp hiện lên hoặc app đã thoát trước khi người dùng kịp thấy. Đây là hạn
+        /// chế cố hữu của cơ chế bắt lỗi toàn cục trong .NET, không phải bug — coi đây là "cố gắng tốt
+        /// nhất" (best-effort), không phải cam kết luôn hiện được dialog. Với lỗi xảy ra TRÊN UI thread
+        /// trong 1 event handler async void (trường hợp phổ biến nhất thực tế), runtime thường CHƯA
+        /// terminate ngay, dialog vẫn hiện được bình thường.
+        /// </summary>
+        public static void HandleGlobalException(Exception ex, string source)
+        {
+            try
+            {
+                Services.AppLog.Add($"[LỖI KHÔNG BẮT ĐƯỢC] ({source}) {ex.GetType().Name}: {ex.Message}");
+
+                if (MainWindowInstance is not { } owner)
+                    return; // Chưa có cửa sổ nào để hiện dialog lên (crash quá sớm lúc khởi động).
+
+                Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await Services.ErrorReportService.OfferReportAsync(owner, "Lỗi không mong muốn", ex);
+                });
+            }
+            catch
+            {
+                // Bản thân việc XỬ LÝ crash mà lại ném lỗi tiếp thì vô nghĩa — nuốt luôn, không làm gì
+                // thêm được nữa trong tình huống này.
+            }
         }
     }
 }

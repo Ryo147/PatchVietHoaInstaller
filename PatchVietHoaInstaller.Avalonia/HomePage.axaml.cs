@@ -7,7 +7,6 @@ using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using VietHoaInstaller.Models;
@@ -492,49 +491,10 @@ namespace VietHoaInstaller
             await RefreshStatusForFolderAsync(foundFolder, showErrorDialog: true);
         }
 
-        /// <summary>
-        /// Hiện lỗi cho người dùng, hỏi có muốn báo lỗi không. Nếu đồng ý, mở sẵn trang tạo Issue trên GitHub
-        /// với tiêu đề + nội dung đã điền sẵn để người dùng chỉ cần bấm gửi.
-        /// </summary>
-        private async Task OfferErrorReport(string title, Exception ex)
-        {
-            if (OwnerWindow is not { } owner) return;
-
-            var result = await SimpleMessageBox.ShowAsync(owner,
-                $"{title}:\n\n{ex.Message}\n\nBạn có muốn báo lỗi này cho nhóm dịch không?",
-                title, SimpleMessageBoxButtons.YesNo);
-
-            if (result != SimpleMessageBoxResult.Yes)
-                return;
-
-            string gameName = _selectedProfile is { } profile ? profile.Name : "(chưa chọn game)";
-
-            string issueTitle = $"[BÁO LỖI TỰ ĐỘNG] {title} - {gameName}";
-            string errorDetail = ex.ToString();
-            if (errorDetail.Length > 1500)
-                errorDetail = errorDetail[..1500] + "\n... (đã cắt bớt, xem log đầy đủ trên máy nếu cần)";
-
-            string issueBody =
-                $"**Game:** {gameName}\n" +
-                $"**Phiên bản app:** v{AppVersion}\n" +
-                $"**Thời điểm:** {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n" +
-                $"**Hệ điều hành:** {RuntimeInformation.OSDescription}\n\n" +
-                $"**Chi tiết lỗi:**\n```\n{errorDetail}\n```\n\n" +
-                "**Mô tả thêm (nếu có):**\n(bạn có thể ghi thêm ở đây trước khi gửi)";
-
-            string url = "https://github.com/Ryo147/PatchVietHoaInstaller/issues/new"
-                + $"?title={Uri.EscapeDataString(issueTitle)}"
-                + $"&body={Uri.EscapeDataString(issueBody)}";
-
-            try
-            {
-                PlatformHelper.OpenUrlInBrowser(url);
-            }
-            catch
-            {
-                // Không mở được trình duyệt (hiếm khi xảy ra) -> bỏ qua, không chặn luồng chính
-            }
-        }
+        /// <summary>Wrapper mỏng gọi ErrorReportService dùng chung (xem Services/ErrorReportService.cs) —
+        /// giữ lại tên hàm cũ để không phải sửa 2 chỗ gọi bên trên, tự động kèm tên game đang chọn.</summary>
+        private Task OfferErrorReport(string title, Exception ex)
+            => ErrorReportService.OfferReportAsync(OwnerWindow, title, ex, _selectedProfile?.Name);
 
         // ================= HELPER UI =================
 
@@ -562,6 +522,11 @@ namespace VietHoaInstaller
             TxtLog.Inlines.Add(new Run(message + "\n") { Foreground = messageBrush });
 
             LogScrollViewer.ScrollToEnd();
+
+            // Ghi song song vào bộ nhớ log DÙNG CHUNG toàn app (khác với InlineCollection ở trên chỉ để
+            // hiển thị UI) — để ErrorReportService đính kèm được vào nội dung báo lỗi dù lỗi xảy ra ở
+            // trang khác, không chỉ HomePage. Xem Services/AppLog.cs.
+            AppLog.Add(message);
         }
 
         /// <summary>Lấy 1 SolidColorBrush đã khai báo trong App.axaml theo key, trả về fallback nếu thiếu
