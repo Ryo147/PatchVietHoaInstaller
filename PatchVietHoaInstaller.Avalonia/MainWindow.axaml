@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="VietHoaInstaller.MainWindow"
         Title="Phần mềm cài đặt Việt hóa"
-        Width="880" Height="960"
+        Width="880" Height="960" MinHeight="680"
         WindowStartupLocation="CenterScreen"
         SystemDecorations="None"
         TransparencyLevelHint="Transparent"

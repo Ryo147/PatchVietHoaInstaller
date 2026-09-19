@@ -230,6 +230,8 @@ namespace VietHoaInstaller.Services
             var folderCheck = ValidateGameFolder(gameFolder);
             if (!folderCheck.IsValid)
                 throw new InvalidOperationException(folderCheck.Message);
+
+            EnsureWritable(gameFolder);
             string stableKey = string.IsNullOrWhiteSpace(ProfileName) ? "default" : ProfileName;
             foreach (char c in Path.GetInvalidFileNameChars())
                 stableKey = stableKey.Replace(c, '_');
@@ -280,6 +282,8 @@ namespace VietHoaInstaller.Services
                         string? assetVersion = GitHubReleaseService.ExtractVersionFromAssetName(asset.Name);
                         if (!string.IsNullOrWhiteSpace(assetVersion))
                             installedVersion = assetVersion;
+
+                        EnsureEnoughDiskSpace(tempDir, gameFolder, asset.Size);
                     }
                     else
                     {
@@ -324,6 +328,65 @@ namespace VietHoaInstaller.Services
         private const long MaxTotalUncompressedBytes = 10L * 1024 * 1024 * 1024; // 10 GB
         private const long MaxSingleEntryUncompressedBytes = 4L * 1024 * 1024 * 1024; // 4 GB
         private const int MaxEntryCount = 50_000;
+
+        /// <summary>
+        /// Thử ghi 1 file rỗng rồi xóa ngay — cách DUY NHẤT đáng tin để biết có ghi được hay không trên cả
+        /// Windows lẫn Linux. Đọc ACL (Windows) hay bit permission (Linux) đều cho kết quả sai trong nhiều
+        /// trường hợp thật: UAC virtualization, ACL kế thừa, mount option ro, user vừa thêm vào group
+        /// nhưng chưa re-login. Thà thử thật còn hơn đoán.
+        /// Chặn sớm ở đây để người chọn nhầm thư mục trong Program Files (hoặc ổ mount read-only) biết
+        /// ngay, thay vì tải xong vài trăm MB rồi mới chết đúng lúc bắt đầu ghi đè file game.
+        /// </summary>
+        private static void EnsureWritable(string gameFolder)
+        {
+            string probe = Path.Combine(gameFolder, $".viethoa_write_test_{Guid.NewGuid():N}");
+            try
+            {
+                using (File.Create(probe)) { }
+                File.Delete(probe);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+            {
+                throw new InvalidOperationException(
+                    "Không có quyền ghi vào thư mục game. Thử chạy phần mềm với quyền Administrator, " +
+                    "hoặc kiểm tra xem thư mục có đang ở chế độ chỉ đọc không.\n\n" +
+                    $"Thư mục: {gameFolder}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Chặn trước lỗi "hết dung lượng giữa chừng" — lỗi này khó chịu hơn bình thường vì nó xảy ra SAU
+        /// khi đã ghi đè một phần file game, để lại game ở trạng thái dở dang.
+        /// ponytail: hệ số 3x là ước lượng thô (zip + phần giải nén + bản backup file gốc), không đo chính
+        /// xác. Nếu có người báo bị chặn nhầm dù còn đủ chỗ thì mới cần đọc size thật từ central directory
+        /// của zip.
+        /// </summary>
+        private static void EnsureEnoughDiskSpace(string tempDir, string gameFolder, long assetSize)
+        {
+            if (assetSize <= 0) return; // API không trả size -> không có cơ sở để chặn, bỏ qua.
+
+            long needed = assetSize * 3;
+
+            foreach (string path in new[] { tempDir, gameFolder })
+            {
+                long free;
+                try
+                {
+                    free = new DriveInfo(Path.GetPathRoot(Path.GetFullPath(path))!).AvailableFreeSpace;
+                }
+                catch
+                {
+                    continue; // Không đọc được thông tin ổ đĩa (mount lạ trên Linux) -> không chặn nhầm.
+                }
+
+                if (free < needed)
+                    throw new InvalidOperationException(
+                        "Không đủ dung lượng trống để cài đặt.\n\n" +
+                        $"Cần khoảng: {needed / 1024 / 1024} MB\n" +
+                        $"Còn trống: {free / 1024 / 1024} MB\n" +
+                        $"Tại ổ chứa: {path}");
+            }
+        }
 
         private static void ExtractZipWithProgress(string zipPath, string extractDir, IProgress<InstallProgress> progress, CancellationToken ct)
         {

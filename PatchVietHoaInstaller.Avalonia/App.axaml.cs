@@ -103,11 +103,14 @@ namespace VietHoaInstaller
         }
 
         /// <summary>Gọi khi cần hiện thông báo dạng balloon/toast từ hệ điều hành (vd: có bản Patch mới).
-        /// GHI CHÚ: Avalonia TrayIcon không có BalloonTip sẵn như WinForms NotifyIcon trên mọi nền tảng —
-        /// dùng ToolTipText cập nhật tạm thời làm phương án thay thế đơn giản, tương thích cả 3 OS.</summary>
+        /// Windows: popup thật qua Shell_NotifyIcon. Linux: popup thật qua notify-send (xem LinuxNotifier,
+        /// không đảm bảo có trên mọi distro). Cả hai thất bại, hoặc macOS: fallback đổi ToolTipText khay
+        /// hệ thống — Avalonia TrayIcon không có BalloonTip sẵn như WinForms NotifyIcon trên mọi nền tảng.</summary>
         public static void ShowTrayNotification(string title, string message)
         {
             if (OperatingSystem.IsWindows() && WindowsBalloonNotifier.Show(title, message))
+                return;
+            if (OperatingSystem.IsLinux() && LinuxNotifier.Show(title, message))
                 return;
             if (TrayIconInstance == null) return;
             TrayIconInstance.ToolTipText = $"{title}\n{message}";

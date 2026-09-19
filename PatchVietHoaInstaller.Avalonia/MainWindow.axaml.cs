@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -57,6 +58,7 @@ namespace VietHoaInstaller
             SetPage(_homePage);
             SetNavIndicatorPositionInstant(0);
 
+            Opened += ClampHeightToScreen;
             Closing += MainWindow_Closing;
 
             _ = CheckForPatchUpdatesAsync(showBalloonIfFound: true);
@@ -73,6 +75,26 @@ namespace VietHoaInstaller
                 WindowState = WindowState.Normal;
                 Activate();
             });
+        }
+
+        /// <summary>
+        /// Height=960 khai báo cứng trong XAML + CanResize="False" = trên màn hình thấp hoặc có DPI
+        /// scaling (1080p ở 125% chỉ còn ~826 DIP dùng được, 150% còn ~688), cửa sổ tràn khỏi màn hình
+        /// và người dùng KHÔNG kéo nhỏ lại được. Thu vừa vùng làm việc thật của màn hình đang hiển thị.
+        /// Banner (477px cố định) giữ nguyên, phần bị thu là khung Nhật ký hoạt động ở dưới.
+        /// ponytail: chỉ clamp chiều cao. Nếu màn hình thấp tới mức body bị bóp khó đọc thì mới cần cho
+        /// banner co giãn theo — đợi có người báo mới làm.
+        /// </summary>
+        private void ClampHeightToScreen(object? sender, EventArgs e)
+        {
+            var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
+            if (screen == null) return;
+
+            double usable = screen.WorkingArea.Height / screen.Scaling - 20;
+            if (Height <= usable) return;
+
+            Height = Math.Max(usable, MinHeight);
+            Position = new PixelPoint(Position.X, screen.WorkingArea.Y);
         }
 
         private void MainWindow_Closing(object? sender, WindowClosingEventArgs e)
@@ -117,13 +139,15 @@ namespace VietHoaInstaller
             var settings = SettingsManager.Load();
             if (!settings.AutoCheckPatchUpdate && !forceToastIfNone) return;
 
-            // Kiến trúc hiện tại chỉ lưu 1 "thư mục game gần nhất" dùng chung cho mọi profile
-            // (AppSettings.LastGameFolder). TryGetInstalledPatchVersion tự kiểm tra ProfileName trong
-            // manifest nên nếu thư mục này không phải của đúng game, nó sẽ trả về "" một cách an toàn
-            // (rơi về KnownPatchVersion) thay vì đọc nhầm version của game khác.
+            // Đọc thư mục đã ghi nhớ RIÊNG cho từng game (AppSettings.GameFolders). Trước đây mọi profile
+            // đều resolve về đúng 1 biến LastGameFolder dùng chung -> chỉ ĐÚNG 1 game được kiểm tra bằng
+            // version thật trong manifest, các game còn lại luôn rơi về KnownPatchVersion hardcode nên báo
+            // cập nhật sai (bỏ sót bản mới, hoặc báo có bản mới dù đã cài). TryGetInstalledPatchVersion vẫn
+            // tự đối chiếu ProfileName trong manifest nên đọc nhầm thư mục là an toàn — nhưng giờ không
+            // còn phải dựa vào lớp an toàn đó nữa.
             var checkResult = await PatchUpdateCheckerService.CheckAllAsync(
                 Models.GameCatalog.All,
-                resolveGameFolder: _ => settings.LastGameFolder);
+                resolveGameFolder: profile => settings.GameFolders.TryGetValue(profile.Name, out var folder) ? folder : null);
             var updates = checkResult.Updates;
 
             if (updates.Count > 0)
@@ -355,11 +379,9 @@ namespace VietHoaInstaller
 
                 _updatesPage.SetUpdateInProgress("Đang khởi động lại để áp dụng bản cập nhật...");
 
-                // Lưu lại thư mục game hiện tại (đọc từ HomePage) trước khi thoát,
-                // để mở app mới lên vẫn tự điền lại như cũ.
-                var settings = SettingsManager.Load();
-                settings.LastGameFolder = _homePage.CurrentGameFolder;
-                SettingsManager.Save(settings);
+                // GHI CHÚ: trước đây có lưu tạm settings.LastGameFolder ở đây để mở app mới lên tự điền
+                // lại thư mục. Không còn cần: HomePage đã ghi vào GameFolders[tên game] NGAY LÚC người
+                // dùng chọn/dò thư mục, không đợi tới lúc tự cập nhật mới lưu.
 
                 AppUpdaterService.LaunchUpdaterAndExit(newExePath, () =>
                     (Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.Shutdown());

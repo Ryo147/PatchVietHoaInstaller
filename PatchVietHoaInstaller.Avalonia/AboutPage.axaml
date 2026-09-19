@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="VietHoaInstaller.AboutPage"
-             FontFamily="Arial" Width="457">
+             Width="457">
 	<Grid Margin="20,20,24,16">
 		<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="400" Width="400">
 			<Border Width="84" Height="84" CornerRadius="42" Background="#26FF5A4A" HorizontalAlignment="Center">

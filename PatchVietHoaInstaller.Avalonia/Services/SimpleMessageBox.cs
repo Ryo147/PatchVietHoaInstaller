@@ -239,6 +239,17 @@ namespace VietHoaInstaller.Services
             outerBorder.Child = clipBorder;
             dialog.Content = outerBorder;
 
+            // SystemDecorations=None -> mất luôn Escape-để-đóng mà hộp thoại hệ thống vốn có sẵn. Gắn lại
+            // thủ công: Escape = chọn phương án AN TOÀN ("Không"/"Ok"), giống hệt khi bấm nút X. Cố ý
+            // KHÔNG gắn Enter cho nút xác nhận — các dialog phá hủy đã chặn phản xạ bấm nhanh bằng
+            // emphasizeCancel + cooldown, thêm Enter sẽ mở lại đúng lối tắt đó.
+            dialog.KeyDown += (_, args) =>
+            {
+                if (args.Key != Key.Escape) return;
+                args.Handled = true;
+                CloseWith(buttons == SimpleMessageBoxButtons.YesNo ? SimpleMessageBoxResult.No : SimpleMessageBoxResult.Ok);
+            };
+
             // Nếu người dùng đóng bằng phím Alt+F4 thay vì bấm nút bên trong -> coi như "No"/"Ok" mặc định.
             // Đồng thời dừng timer cooldown nếu còn đang chạy (đóng dialog giữa chừng) -> tránh timer chạy
             // ngầm/leak sau khi dialog đã đóng.

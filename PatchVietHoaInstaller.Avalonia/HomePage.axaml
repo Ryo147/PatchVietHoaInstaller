@@ -1,7 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="VietHoaInstaller.HomePage"
-             FontFamily="Arial">
+             x:Class="VietHoaInstaller.HomePage">
 	<Grid RowDefinitions="477,*">
 
 		<!-- ===== BANNER ===== -->
@@ -85,7 +84,7 @@
 			</Grid>
 
 			<StackPanel Grid.Row="5" x:Name="PanelProgress" IsVisible="False" Margin="0,16,0,0">
-				<Grid ColumnDefinitions="Auto,*,Auto">
+				<Grid ColumnDefinitions="Auto,*,Auto,Auto">
 					<TextBlock Grid.Column="0" Text="Đang cài đặt:" Foreground="{StaticResource TextMutedBrush}"
 					           FontSize="12.5" VerticalAlignment="Center" Margin="0,0,10,0"/>
 					<ProgressBar x:Name="ProgressInstall" Grid.Column="1"
@@ -93,6 +92,9 @@
 					<TextBlock x:Name="TxtPercent" Grid.Column="2" Text="0%"
 					           Foreground="{StaticResource TextPrimaryBrush}" FontSize="12.5"
 					           VerticalAlignment="Center" Margin="10,0,0,0" Width="36"/>
+					<Button x:Name="BtnCancel" Grid.Column="3" Content="Hủy"
+					        Classes="BrowseButton" VerticalAlignment="Center" Margin="6,0,0,0"
+					        Click="BtnCancel_Click"/>
 				</Grid>
 				<TextBlock x:Name="TxtProgressDetail" Text=""
 				           Foreground="{StaticResource TextMutedBrush}" FontSize="11.5"
@@ -104,7 +106,7 @@
 			<Grid Grid.Row="9" RowDefinitions="Auto,8,*">
 				<TextBlock Grid.Row="0" Text="NHẬT KÝ HOẠT ĐỘNG" Foreground="{StaticResource TextMutedBrush}" FontSize="11" FontWeight="SemiBold"/>
 				<ScrollViewer Grid.Row="2" x:Name="LogScrollViewer" VerticalScrollBarVisibility="Auto">
-					<TextBlock x:Name="TxtLog" FontSize="11" FontFamily="Consolas,Monospace" TextWrapping="Wrap" LineHeight="17"/>
+					<TextBlock x:Name="TxtLog" FontSize="11" FontFamily="Consolas,DejaVu Sans Mono,monospace" TextWrapping="Wrap" LineHeight="17"/>
 				</ScrollViewer>
 			</Grid>
 		</Grid>

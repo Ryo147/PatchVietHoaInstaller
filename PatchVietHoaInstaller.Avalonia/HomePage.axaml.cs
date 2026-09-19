@@ -553,9 +553,25 @@ namespace VietHoaInstaller
         }
 
         /// <summary>Khóa các nút thao tác trong lúc đang cài/gỡ để tránh bấm chồng lệnh.</summary>
+        /// <summary>
+        /// _cts và toàn bộ đường xử lý hủy (OperationCanceledException -> set status, ghi log, dọn file
+        /// tạm) đã có sẵn từ trước — chỉ thiếu đúng cái nút để gọi Cancel(). Trước đó lỡ bấm cài nhầm
+        /// game/nhầm thư mục thì không có cách nào dừng ngoài tắt cứng app, tệ nhất là tắt đúng lúc đang
+        /// ghi đè file game.
+        /// </summary>
+        private void BtnCancel_Click(object? sender, RoutedEventArgs e)
+        {
+            if (_cts is null || _cts.IsCancellationRequested) return;
+
+            BtnCancel.IsEnabled = false;
+            AppendLog("Đang hủy, vui lòng đợi thao tác hiện tại kết thúc...");
+            _cts.Cancel();
+        }
+
         private void SetBusyState(bool isBusy)
         {
             BtnBrowse.IsEnabled = !isBusy;
+            BtnCancel.IsEnabled = isBusy;
 
             if (isBusy)
             {

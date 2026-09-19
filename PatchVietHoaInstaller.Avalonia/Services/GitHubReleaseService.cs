@@ -23,6 +23,10 @@ namespace VietHoaInstaller.Services
         /// <summary>Dạng "sha256:abcdef...". GitHub chỉ trả field này cho asset upload sau tháng 6/2025, asset cũ sẽ là null.</summary>
         [JsonPropertyName("digest")]
         public string? Digest { get; set; }
+
+        /// <summary>Kích thước file (byte) theo GitHub API — dùng để ước lượng dung lượng đĩa cần trước khi tải.</summary>
+        [JsonPropertyName("size")]
+        public long Size { get; set; }
     }
 
     public class GitHubRelease
