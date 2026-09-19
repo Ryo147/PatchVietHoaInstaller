@@ -98,6 +98,7 @@
 				</Grid>
 				<TextBlock x:Name="TxtProgressDetail" Text=""
 				           Foreground="{StaticResource TextMutedBrush}" FontSize="11.5"
+				           FontFamily="Consolas,DejaVu Sans Mono,monospace"
 				           Margin="0,6,0,0" TextTrimming="CharacterEllipsis"/>
 			</StackPanel>
 

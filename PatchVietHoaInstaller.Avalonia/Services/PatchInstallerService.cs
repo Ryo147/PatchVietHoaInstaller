@@ -626,7 +626,12 @@ namespace VietHoaInstaller.Services
                 order++;
                 bytes = bytes / 1024;
             }
-            return $"{bytes:0.##} {sizes[order]}";
+            // Độ rộng CỐ ĐỊNH: "0.##" (bản cũ) cắt số 0 thừa (99 -> "99", 1.2 -> "1.2") + đơn vị dài 1-2
+            // ký tự -> độ dài chuỗi đổi theo từng tick khi tải, làm UI cạnh bên (TxtProgressDetail) nhảy
+            // vị trí liên tục. "0.00" giữ luôn 2 số thập phân, căn phải 7 ký tự phần số (đủ cho tới
+            // "1023.99"), đơn vị căn trái 2 ký tự ("B" -> "B ") -> chuỗi luôn cùng độ dài dù số đổi thế
+            // nào, không jitter.
+            return $"{bytes,7:0.00} {sizes[order],-2}";
         }
 
         /// <summary>

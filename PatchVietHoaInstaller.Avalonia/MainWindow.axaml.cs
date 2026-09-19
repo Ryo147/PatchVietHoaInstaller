@@ -91,11 +91,37 @@ namespace VietHoaInstaller
             if (screen == null) return;
 
             double usable = screen.WorkingArea.Height / screen.Scaling - 20;
-            if (Height <= usable) return;
 
-            Height = Math.Max(usable, MinHeight);
-            Position = new PixelPoint(Position.X, screen.WorkingArea.Y);
+            // MinHeight=680 là ngưỡng cho content đọc thoải mái — nhưng trên màn thật sự thấp (vd
+            // 1366x768 + DPI scaling 125%, rất phổ biến ở laptop giá rẻ: usable chỉ còn ~560px), chính
+            // MinHeight lại CHẶN Avalonia co nhỏ hơn 680, ép cửa sổ tràn màn hình dù dòng dưới có gán
+            // Height bao nhiêu đi nữa. Phải hạ MinHeight xuống TRƯỚC — vừa màn hình luôn quan trọng hơn
+            // giữ đúng 1 con số cứng. 400 là sàn tuyệt đối, dưới mức đó banner+nav đã vỡ layout, không
+            // cố fit thêm nữa.
+            if (usable < MinHeight)
+                MinHeight = Math.Max(usable, 400);
+
+            if (Height > usable)
+            {
+                Height = usable;
+                Position = new PixelPoint(Position.X, screen.WorkingArea.Y);
+            }
         }
+
+        // ============ RESIZE KÉO TAY ============
+        // SystemDecorations="None" nghĩa là OS không vẽ viền resize sẵn như cửa sổ thường -> phải tự bắt
+        // PointerPressed ở 8 vùng cạnh/góc (khai báo trong MainWindow.axaml, nằm trong dải Margin="10"
+        // vốn chỉ để chứa đổ bóng) rồi gọi thẳng BeginResizeDrag(WindowEdge, PointerPressedEventArgs) —
+        // đây là API chuẩn của Avalonia cho đúng tình huống này, hệ điều hành tự lo phần kéo mượt/preview,
+        // không cần tự tính toán lại Width/Height theo delta chuột.
+        private void ResizeTop_PointerPressed(object? sender, PointerPressedEventArgs e) => BeginResizeDrag(WindowEdge.North, e);
+        private void ResizeBottom_PointerPressed(object? sender, PointerPressedEventArgs e) => BeginResizeDrag(WindowEdge.South, e);
+        private void ResizeLeft_PointerPressed(object? sender, PointerPressedEventArgs e) => BeginResizeDrag(WindowEdge.West, e);
+        private void ResizeRight_PointerPressed(object? sender, PointerPressedEventArgs e) => BeginResizeDrag(WindowEdge.East, e);
+        private void ResizeTopLeft_PointerPressed(object? sender, PointerPressedEventArgs e) => BeginResizeDrag(WindowEdge.NorthWest, e);
+        private void ResizeTopRight_PointerPressed(object? sender, PointerPressedEventArgs e) => BeginResizeDrag(WindowEdge.NorthEast, e);
+        private void ResizeBottomLeft_PointerPressed(object? sender, PointerPressedEventArgs e) => BeginResizeDrag(WindowEdge.SouthWest, e);
+        private void ResizeBottomRight_PointerPressed(object? sender, PointerPressedEventArgs e) => BeginResizeDrag(WindowEdge.SouthEast, e);
 
         private void MainWindow_Closing(object? sender, WindowClosingEventArgs e)
         {

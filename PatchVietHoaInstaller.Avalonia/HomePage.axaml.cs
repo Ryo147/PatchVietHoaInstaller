@@ -290,19 +290,7 @@ namespace VietHoaInstaller
             SetStatus("Đang cài đặt Việt hóa...", "#FFB454");
 
             _cts = new CancellationTokenSource();
-            string? lastLoggedMessage = null;
-            var progress = new Progress<InstallProgress>(p =>
-            {
-                ProgressInstall.Value = p.Percent;
-                TxtPercent.Text = $"{p.Percent}%";
-                TxtProgressDetail.Text = p.Message;
-
-                if (p.Message != lastLoggedMessage)
-                {
-                    lastLoggedMessage = p.Message;
-                    AppendLog(p.Message);
-                }
-            });
+            var progress = CreateProgressReporter();
 
             try
             {
@@ -410,19 +398,7 @@ namespace VietHoaInstaller
             SetStatus("Đang gỡ Việt hóa...", "#FFB454");
 
             _cts = new CancellationTokenSource();
-            string? lastLoggedMessage = null;
-            var progress = new Progress<InstallProgress>(p =>
-            {
-                ProgressInstall.Value = p.Percent;
-                TxtPercent.Text = $"{p.Percent}%";
-                TxtProgressDetail.Text = p.Message;
-
-                if (p.Message != lastLoggedMessage)
-                {
-                    lastLoggedMessage = p.Message;
-                    AppendLog(p.Message);
-                }
-            });
+            var progress = CreateProgressReporter();
 
             try
             {
@@ -504,6 +480,37 @@ namespace VietHoaInstaller
         // lúc càng chậm nếu không giới hạn, nhất là khi patch nhiều file (giờ đã throttle ở nguồn, nhưng
         // vẫn nên chặn ở đây phòng trường hợp người dùng cài/gỡ nhiều lần liên tục trong 1 phiên).
         private const int MaxLogLines = 400;
+
+        /// <summary>
+        /// Progress bar + nhãn chi tiết cập nhật MỌI lần report (real-time, đúng tốc độ tải thật, mượt
+        /// không khựng). Khung log CHỈ ghi tối đa 1 dòng mỗi ~700ms — lúc tải, message đổi gần như MỖI
+        /// LẦN report (byte/tốc độ luôn khác nhau) nên dedup theo chuỗi cũ (so sánh != lastLoggedMessage)
+        /// gần như vô dụng: 20ms/lần x message luôn khác nhau = log tràn ~50 dòng/giây, trôi chữ quá
+        /// nhanh không đọc kịp. Luôn ghi dòng CUỐI (Percent >= 100) dù chưa đủ 700ms, để log không bị
+        /// cắt cụt ngay trước lúc hoàn tất.
+        /// Dùng chung cho cả InstallAsync lẫn UninstallAsync — trước đây 2 chỗ copy y hệt logic này.
+        /// </summary>
+        private IProgress<InstallProgress> CreateProgressReporter()
+        {
+            string? lastLoggedMessage = null;
+            DateTime lastLogUtc = DateTime.MinValue;
+
+            return new Progress<InstallProgress>(p =>
+            {
+                ProgressInstall.Value = p.Percent;
+                TxtPercent.Text = $"{p.Percent}%";
+                TxtProgressDetail.Text = p.Message;
+
+                bool isFinal = p.Percent >= 100;
+                bool dueForLog = (DateTime.UtcNow - lastLogUtc).TotalMilliseconds >= 700;
+                if (p.Message == lastLoggedMessage || (!dueForLog && !isFinal))
+                    return;
+
+                lastLoggedMessage = p.Message;
+                lastLogUtc = DateTime.UtcNow;
+                AppendLog(p.Message);
+            });
+        }
 
         private void AppendLog(string message)
         {

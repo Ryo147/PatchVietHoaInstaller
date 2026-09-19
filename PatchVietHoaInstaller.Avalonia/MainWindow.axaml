@@ -6,13 +6,16 @@
         WindowStartupLocation="CenterScreen"
         SystemDecorations="None"
         TransparencyLevelHint="Transparent"
-        CanResize="False"
+        CanResize="True" MinWidth="640"
         Icon="avares://PatchVietHoaInstaller/Assets/Dich2000sICON.ico"
         Background="Transparent">
 
-	<!-- Lớp nền trong suốt để chứa bóng đổ -->
-	<Border Margin="10" Background="{StaticResource BgDarkBrush}" CornerRadius="10"
-	        BoxShadow="0 0 25 0 #99000000">
+	<!-- ponytail: MinWidth=640 là ước lượng thô (5 tab nav ~92px + icon/nút title bar), không đo
+	     pixel-perfect. Nâng lên nếu co nhỏ hơn làm vỡ layout title bar. -->
+	<Grid>
+		<!-- Lớp nền trong suốt để chứa bóng đổ -->
+		<Border Margin="10" Background="{StaticResource BgDarkBrush}" CornerRadius="10"
+		        BoxShadow="0 0 25 0 #99000000">
 		<Border BorderBrush="{StaticResource BorderBrush1}" BorderThickness="1" CornerRadius="10" ClipToBounds="True">
 			<Grid RowDefinitions="44,*">
 
@@ -112,6 +115,21 @@
 					<TextBlock x:Name="TxtToast" Text="" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12.5"/>
 				</Border>
 			</Grid>
+			</Border>
 		</Border>
-	</Border>
+
+		<!-- ============ VÙNG BẮT KÉO ĐỂ RESIZE — nằm đúng trong dải Margin="10" ở trên (trước giờ chỉ
+		     để chứa đổ bóng, giờ dùng luôn để bắt chuột). SystemDecorations="None" -> không có viền OS
+		     vẽ sẵn để kéo, phải tự bắt PointerPressed rồi gọi BeginResizeDrag. 4 cạnh thêm TRƯỚC, 4 góc
+		     thêm SAU để góc luôn nằm trên cạnh trong z-order (được ưu tiên bắt chuột ở vùng giao nhau). ============ -->
+		<Rectangle Fill="Transparent" Height="10" VerticalAlignment="Top" Cursor="SizeNorthSouth" PointerPressed="ResizeTop_PointerPressed"/>
+		<Rectangle Fill="Transparent" Height="10" VerticalAlignment="Bottom" Cursor="SizeNorthSouth" PointerPressed="ResizeBottom_PointerPressed"/>
+		<Rectangle Fill="Transparent" Width="10" HorizontalAlignment="Left" Cursor="SizeWestEast" PointerPressed="ResizeLeft_PointerPressed"/>
+		<Rectangle Fill="Transparent" Width="10" HorizontalAlignment="Right" Cursor="SizeWestEast" PointerPressed="ResizeRight_PointerPressed"/>
+
+		<Rectangle Fill="Transparent" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Top" Cursor="TopLeftCorner" PointerPressed="ResizeTopLeft_PointerPressed"/>
+		<Rectangle Fill="Transparent" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Top" Cursor="TopRightCorner" PointerPressed="ResizeTopRight_PointerPressed"/>
+		<Rectangle Fill="Transparent" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Bottom" Cursor="BottomLeftCorner" PointerPressed="ResizeBottomLeft_PointerPressed"/>
+		<Rectangle Fill="Transparent" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Cursor="BottomRightCorner" PointerPressed="ResizeBottomRight_PointerPressed"/>
+	</Grid>
 </Window>
