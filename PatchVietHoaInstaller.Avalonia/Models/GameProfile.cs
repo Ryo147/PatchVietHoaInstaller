@@ -96,7 +96,8 @@ namespace VietHoaInstaller.Models
                 PatchDownloadUrl = "https://github.com/Ryo147/PatchVH/releases/download/1/PATCHVH_P.I._v1.2.0.zip",
                 RequiredGameFiles = new()
                 {
-                    Path.Combine("BepInEx"),
+                    Path.Combine("PlagueIncEvolved_Data", "resources.assets"),
+                    Path.Combine("PlagueIncEvolved_Data", "sharedassets0.assets")
                 },
                 BannerImagePath = "avares://PatchVietHoaInstaller/Assets/PlagueIncVH.jpg",
                 SteamAppId = "246620",
