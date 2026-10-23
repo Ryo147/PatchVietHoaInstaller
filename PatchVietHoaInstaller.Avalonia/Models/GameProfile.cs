@@ -105,7 +105,7 @@ namespace VietHoaInstaller.Models
                 GitHubRepo = "PatchVH",
                 GitHubReleaseTag = "1",
                 AssetNameContains = "P.I",
-                ApplicableGameVersion = "1.24.0.2",
+                ApplicableGameVersion = "từ 1.24.0 trở lên",
                 // Khớp với version trong PatchDownloadUrl ở trên ("..._v1.0.zip"). Nếu để rỗng,
                 // PatchUpdateCheckerService sẽ luôn coi release hiện tại là "bản mới" ở lần kiểm tra đầu,
                 // dù người dùng đã có đúng bản mới nhất -> báo giả liên tục.
