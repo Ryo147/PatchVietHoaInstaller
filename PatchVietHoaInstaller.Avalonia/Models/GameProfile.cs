@@ -93,11 +93,10 @@ namespace VietHoaInstaller.Models
             new GameProfile
             {
                 Name = "Plague Inc: Evolved",
-                PatchDownloadUrl = "https://github.com/Ryo147/PatchVH/releases/download/1/PATCHVH_P.I._v1.1.0.zip",
+                PatchDownloadUrl = "https://github.com/Ryo147/PatchVH/releases/download/1/PATCHVH_P.I._v1.2.0.zip",
                 RequiredGameFiles = new()
                 {
-                    Path.Combine("PlagueIncEvolved_Data", "resources.assets"),
-                    Path.Combine("PlagueIncEvolved_Data", "sharedassets0.assets")
+                    Path.Combine("BepInEx"),
                 },
                 BannerImagePath = "avares://PatchVietHoaInstaller/Assets/PlagueIncVH.jpg",
                 SteamAppId = "246620",
