@@ -114,7 +114,7 @@ namespace VietHoaInstaller.Models
             {
                 Name = "Devil May Cry 5 w/ Fluffy Mod Manager",
                 PatchDownloadUrl = "EMPTY", // TODO: đổi link thật
-                IsComingSoon = false,
+                IsComingSoon = true,
                 InstallMode = GameInstallMode.CopyToModFolder,
                 ModFolderRelativePath = "", // zip đã có sẵn "natives\..." ở gốc -> copy thẳng vào gốc thư mục game, không cộng thêm thư mục con
                 BannerImagePath = "avares://PatchVietHoaInstaller/Assets/DMC5_VH.jpg",

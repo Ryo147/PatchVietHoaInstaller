@@ -14,7 +14,7 @@
 		<ApplicationIcon>Assets\Dich2000sICON.ico</ApplicationIcon>
 
 		<!-- Nguồn duy nhất khai báo version của app. Mỗi lần release, chỉ cần sửa số này ở đây -->
-		<Version>4.3.0</Version>
+		<Version>4.2.1</Version>
 
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<Company>PatchVietHoaInstaller</Company>
