@@ -94,6 +94,7 @@ namespace VietHoaInstaller.Models
             {
                 Name = "Plague Inc: Evolved",
                 PatchDownloadUrl = "https://github.com/Ryo147/PatchVH/releases/download/1/PATCHVH_P.I._v1.2.0.zip",
+                InstallMode = GameInstallMode.CopyToModFolder,
                 RequiredGameFiles = new()
                 {
                     Path.Combine("PlagueIncEvolved_Data", "resources.assets"),
@@ -109,7 +110,9 @@ namespace VietHoaInstaller.Models
                 // Khớp với version trong PatchDownloadUrl ở trên ("..._v1.0.zip"). Nếu để rỗng,
                 // PatchUpdateCheckerService sẽ luôn coi release hiện tại là "bản mới" ở lần kiểm tra đầu,
                 // dù người dùng đã có đúng bản mới nhất -> báo giả liên tục.
-                KnownPatchVersion = "1.0.1"
+                KnownPatchVersion = "1.0.1",
+                InstallNote = "Lưu ý: Sau khi gỡ Việt hóa, vui lòng vào Steam và Xác minh file của game để tránh bị lỗi phát sinh."
+
             },
             new GameProfile
             {
